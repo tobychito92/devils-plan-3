@@ -61,7 +61,7 @@
 .heavy-choices button:disabled{opacity:.42}
 .heavy-score{display:flex;flex-wrap:wrap;gap:5px 12px;font-size:13px}
 @media(max-width:430px){.table-tray{gap:6px}.table-card{width:38px;height:51px}.heavy-board{gap:5px}.heavy-stones .table-stone{width:23px;height:21px}}
-</style><style>.online-room-info p{margin:3px 0;font-size:14px}.online-room-info{margin-bottom:12px}#board input{max-width:100%;width:132px}</style><main><header><span>THE DEVIL’S PLAN</span><span>DEAD AGAIN</span></header><section id="home"><h1>魔鬼的計謀</h1><p>單人挑戰・本機對戰</p><div class="list" id="menu"></div><footer>非官方可玩版 · 題板重繪</footer></section><section id="play" hidden><button class="link" onclick="lobby()">‹ 所有遊戲</button><h2 id="title"></h2><p id="hint"></p><div class="panel" id="board"></div><div id="controls" class="bar"></div><div class="msg" id="msg" role="status"></div></section></main>
+</style><style>.online-room-info p{margin:3px 0;font-size:14px}.online-room-info{margin-bottom:12px}#board input{max-width:100%;width:132px}</style><main><header><span>THE DEVIL’S PLAN</span><span>DEAD AGAIN</span></header><section id="home"><h1>魔鬼的計謀</h1><p>單人挑戰・本機對戰</p><div class="list" id="menu"></div><footer>非官方可玩版 · 題板重繪</footer></section><section id="play" hidden><button class="link" onclick="lobby()">‹ 所有遊戲</button><h2 id="title"></h2><button id="online-entry" hidden>網上開房／加入</button><div id="room-status" role="status" hidden></div><p id="hint"></p><div class="panel" id="board"></div><div id="controls" class="bar"></div><div class="msg" id="msg" role="status"></div></section></main>
 <script>
 const $=s=>document.getElementById(s), games=[
 [33,'數立方體','Count the Cubes','數出所有方塊，包括被遮住嘅底層。每條柱由地面疊起，中間冇空位。'],
@@ -79,42 +79,81 @@ const $=s=>document.getElementById(s), games=[
 [31,'騎士巡遊','Knight’s Tour','行日字步，走遍 5×5 棋盤，每格只可踏一次。㩒亮起嘅格移動，可以退步或睇提示。'],
 [37,'Heavy 13','Heavy 13','秘密揀重量同顏色籌碼。令任何一磅到 13 或以上就會受罰。14 輪後罰分最多嘅兩位出局。']];
 const letter=i=>String.fromCharCode(65+i), seq=n=>Array.from({length:n},(_,i)=>i);
-function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-let mode,round,timer,answer,check,finished,feedback;
+function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(gameRandom()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+let mode,round,timer,answer,check,finished,feedback,raceFinish,raceProof;
+const online=window.onlineGame||null;
+let gameRandom=online?.random||Math.random;
+function stopRace(){raceFinish=null;gameRandom=Math.random}
+function onlineGameLabel(id){return games.find(game=>game[0]===id)?.[1]}
+function onlineGameView(id){clearInterval(timer);$('online-entry').hidden=true;mode=games.findIndex(game=>game[0]===id);$('home').hidden=true;$('play').hidden=false;$('title').textContent=games[mode][1];$('hint').textContent=games[mode][3]}
+function launchRace(id,random,finish){
+  stopRace();onlineGameView(id);round=1;finished=false;feedback='';raceProof=null;
+  raceFinish=finish;gameRandom=random;
+  $('board').className='panel';$('controls').replaceChildren();$('msg').textContent='';
+  ({31:knightTour,33:cube,34:rect,36:poker,42:code,44:fence})[id]();
+}
 $('menu').innerHTML=games.map(([id,name,en],i)=>({id,name,en,i})).sort((a,b)=>a.id-b.id).map(({id,name,en,i})=>'<button class="entry" onclick="start('+i+')"><b>'+id+'</b><span><strong>'+name+'</strong><small>'+en+'</small></span><i>›</i></button>').join('');
-function lobby(){window.dispatchEvent(new Event('tiger-view-exit'));clearInterval(timer);$('home').hidden=false;$('play').hidden=true}
+function lobby(){stopRace();window.dispatchEvent(new Event('tiger-view-exit'));clearInterval(timer);$('home').hidden=false;$('play').hidden=true}
 function start(i){mode=i;round=0;$('home').hidden=true;$('play').hidden=false;next()}
-function next(){window.dispatchEvent(new Event('tiger-view-exit'));clearInterval(timer);round++;finished=false;feedback='';$('board').className='panel';$('title').textContent=games[mode][1];$('hint').textContent=games[mode][3];$('msg').textContent='';$('controls').innerHTML='';[cube,rect,poker,code,fence,wallGo,millCourt,fogLinks,cardForecast,ridgeEscape,signalQuestions,pokerExchange,knightTour,sumThirteen][mode]()}
-function controls(html){$('controls').innerHTML=html+'<button class="primary" id="submit" onclick="judge()">提交答案</button><button class="link" onclick="next()">換題</button>'}
-function judge(){if(finished)return;let result=check();if(result===null)return;if(!result){$('msg').textContent=feedback||'未正確，可以再試。';return}finished=true;$('msg').textContent=feedback||'答啱！';$('controls').innerHTML='<button class="primary" onclick="next()">下一題 ›</button>'}
-function numeric(n){answer=n;controls('<label>數量 <input id="num" type="number" inputmode="numeric" min="0" step="1"></label>');$('num').onkeydown=e=>{if(e.key==='Enter')judge()};check=()=>$('num').value.trim()!==''&&Number($('num').value)===n}
-function cube(){let n=3+round%2,h=seq(n).map(()=>Array(n).fill(0)),total=0,polys='';for(let x=n-1;x>=0;x--)for(let y=n-1;y>=0;y--){h[x][y]=Math.min(6,Math.max(h[x+1]?.[y]||1,h[x][y+1]||1)+Math.floor(Math.random()*2))}
+function next(){if(raceFinish)return;window.dispatchEvent(new Event('tiger-view-exit'));clearInterval(timer);round++;finished=false;feedback='';$('board').className='panel';$('title').textContent=games[mode][1];$('hint').textContent=games[mode][3];$('msg').textContent='';$('controls').innerHTML='';[cube,rect,poker,code,fence,wallGo,millCourt,fogLinks,cardForecast,ridgeEscape,signalQuestions,pokerExchange,knightTour,sumThirteen][mode]();
+  const entry=$('online-entry');
+  entry.hidden=!window.openGameRoom||games[mode][0]===29;
+  entry.onclick=()=>window.openGameRoom(games[mode][0]);
+}
+function controls(html){$('controls').innerHTML=html+'<button class="primary" id="submit" onclick="judge()">提交答案</button>'+(raceFinish?'':'<button class="link" onclick="next()">換題</button>')}
+function judge(){if(finished)return;let result=check();if(result===null)return;if(!result){$('msg').textContent=feedback||'未正確，可以再試。';return}finished=true;$('msg').textContent=feedback||'答啱！';if(raceFinish){$('controls').replaceChildren();raceFinish(raceProof);return}$('controls').innerHTML='<button class="primary" onclick="next()">下一題 ›</button>'}
+function numeric(n){if(online?.raceCheck){online.verify=proof=>proof===n?0:null;return}answer=n;controls('<label>數量 <input id="num" type="number" inputmode="numeric" min="0" step="1"></label>');$('num').onkeydown=e=>{if(e.key==='Enter')judge()};check=()=>{raceProof=Number($('num').value);return $('num').value.trim()!==''&&raceProof===n}}
+function cube(){let n=3+round%2,h=seq(n).map(()=>Array(n).fill(0)),total=0,polys='';for(let x=n-1;x>=0;x--)for(let y=n-1;y>=0;y--){h[x][y]=Math.min(6,Math.max(h[x+1]?.[y]||1,h[x][y+1]||1)+Math.floor(gameRandom()*2))}
 function face(points,color){return '<polygon points="'+points+'" fill="'+color+'" stroke="#4a403a" stroke-width="1.4" stroke-linejoin="round"/>'}
 for(let d=0;d<2*n;d++)for(let x=0;x<n;x++){let y=d-x;if(y<0||y>=n)continue;total+=h[x][y];for(let z=0;z<h[x][y];z++){let a=(x-y)*25,b=(x+y)*13-z*26;let t=a+','+(b-26),r=(a+25)+','+(b-13),m=a+','+b,l=(a-25)+','+(b-13);polys+=face([l,m,a+','+(b+26),(a-25)+','+(b+13)].join(' '),'#aa937c')+face([m,r,(a+25)+','+(b+13),a+','+(b+26)].join(' '),'#77675c')+face([t,r,m,l].join(' '),'#e4d7c3')}}
 let top=-26*Math.max(...h.flat()),bottom=26*n;$('board').innerHTML='<svg aria-label="等角方塊圖" style="max-height:390px" viewBox="'+[-n*25-10,top-10,n*50+20,bottom-top+20].join(' ')+'">'+polys+'</svg>';numeric(total)}
-function rect(){let g=round===1?[[1,8,6,null,7,3,1],[3,5,2,null,4,5,8],[7,4,9,21,9,2,6],[null,null,null,null,null,null,21],[null,null,null,null,9,4,7],[null,null,null,null,2,5,3],[null,null,null,null,6,8,1]]:seq(5).map(()=>seq(5).map(()=>1+Math.floor(Math.random()*7)));let n=g.length,target=round===1?20:g[0][0]+g[0][1],count=0;for(let y=0;y<n;y++)for(let x=0;x<n;x++)for(let b=y;b<n;b++)for(let r=x;r<n;r++){let cells=g.slice(y,b+1).flatMap(row=>row.slice(x,r+1));if(!cells.includes(null)&&cells.reduce((a,b)=>a+b,0)===target)count++}
+function rect(){let g=round===1?[[1,8,6,null,7,3,1],[3,5,2,null,4,5,8],[7,4,9,21,9,2,6],[null,null,null,null,null,null,21],[null,null,null,null,9,4,7],[null,null,null,null,2,5,3],[null,null,null,null,6,8,1]]:seq(5).map(()=>seq(5).map(()=>1+Math.floor(gameRandom()*7)));let n=g.length,target=round===1?20:g[0][0]+g[0][1],count=0;for(let y=0;y<n;y++)for(let x=0;x<n;x++)for(let b=y;b<n;b++)for(let r=x;r<n;r++){let cells=g.slice(y,b+1).flatMap(row=>row.slice(x,r+1));if(!cells.includes(null)&&cells.reduce((a,b)=>a+b,0)===target)count++}
 $('board').innerHTML='<div class="target">TARGET · '+target+'</div><div class="rect" style="grid-template-columns:repeat('+n+',1fr)">'+g.flat().map(v=>v===null?'<i></i>':'<span>'+v+'</span>').join('')+'</div>';numeric(count)}
 const suits='♠♥♦♣',rank=c=>2+c%13, suit=c=>Math.floor(c/13), card=c=>'<span class="'+([1,2].includes(suit(c))?'red':'')+'">'+('23456789TJQKA'[c%13]).replace('T','10')+suits[suit(c)]+'</span>';
 function hand(cs){let rs=cs.map(rank).sort((a,b)=>b-a),groups=[...new Set(rs)].map(v=>[rs.filter(r=>r===v).length,v]).sort((a,b)=>b[0]-a[0]||b[1]-a[1]);let flush=cs.every(c=>suit(c)===suit(cs[0])),straight=groups.length===5?(rs[0]-rs[4]===4?rs[0]:rs.join()==='14,5,4,3,2'?5:0):0;
 let kind=flush&&straight?8:groups[0][0]===4?7:groups[0][0]===3&&groups[1][0]===2?6:flush?5:straight?4:groups[0][0]===3?3:groups[1][0]===2?2:groups[0][0]===2?1:0;
 let tie=straight?[straight]:groups.map(g=>g[1]);return [kind,...seq(5).map(i=>tie[i]||0)].reduce((a,b)=>a*15+b,0)}
 function poker(){let deck=shuffle(seq(52)),pool=deck.slice(0,16),community=deck.slice(16,19),sel=[],hidden=false,best=-1,pair,kind=['高牌','一對','兩對','三條','順子','同花','葫蘆','四條','同花順'];for(let i=0;i<15;i++)for(let j=i+1;j<16;j++){let v=hand([...community,pool[i],pool[j]]);if(v>best){best=v;pair=[i,j]}}
+if(online?.raceCheck){
+  online.verify=proof=>validIndices(proof,2,pool.length)?hand([...community,...proof.map(i=>pool[i])]):null;
+  return;
+}
 function paint(show=false){$('board').innerHTML='<div class="cards">'+pool.map((c,i)=>'<button class="card '+(hidden&&!show?'back ':'')+(sel.includes(i)?'sel':'')+'" data-i="'+i+'">'+(hidden&&!show?letter(i):card(c))+'</button>').join('')+'</div>'+(hidden?'<div class="community">公牌　'+community.map(card).join('　')+'</div>':'');$('board').querySelectorAll('button').forEach((b,i)=>b.onclick=()=>{if(!hidden||finished)return;if(sel.includes(i))sel=sel.filter(j=>j!==i);else if(sel.length<2)sel.push(i);paint()})}
-function cover(){clearInterval(timer);hidden=true;paint();controls('<strong>選擇兩個位置</strong>');check=()=>{if(sel.length!==2){$('msg').textContent='請先揀兩個位置。';return null}let value=hand([...community,...sel.map(i=>pool[i])]);feedback=(value===best?'最佳組合！':'今次未達最佳。')+' 你揀到'+kind[Math.floor(value/15**5)]+'；最佳例子 '+pair.map(letter).join('、')+'（'+kind[Math.floor(best/15**5)]+'）。';paint(true);return true}}
+function cover(){clearInterval(timer);hidden=true;paint();controls('<strong>選擇兩個位置</strong>');check=()=>{if(sel.length!==2){$('msg').textContent='請先揀兩個位置。';return null}let value=hand([...community,...sel.map(i=>pool[i])]);raceProof=[...sel];feedback=(value===best?'最佳組合！':'今次未達最佳。')+' 你揀到'+kind[Math.floor(value/15**5)]+'；最佳例子 '+pair.map(letter).join('、')+'（'+kind[Math.floor(best/15**5)]+'）。';paint(true);return true}}
 paint();$('controls').innerHTML='<strong id="clock">記憶時間　20 秒</strong><button id="cover">提早冚牌</button>';$('cover').onclick=cover;let end=Date.now()+20000;timer=setInterval(()=>{let s=Math.ceil((end-Date.now())/1000);if(s<=0)cover();else $('clock').textContent='記憶時間　'+s+' 秒'},150)}
+function validIndices(proof,count,max){return Array.isArray(proof)&&proof.length===count&&new Set(proof).size===count&&proof.every(i=>Number.isInteger(i)&&i>=0&&i<max)}
 const palette=['#e4a7ec','#a9e3e3','#d2dfaa','#f4d466','#f3e6d7'],shapes=['●','▲','◆','★','■'],colors=[0,1,0,2,1,2,1,3,3,3,3,2,3,1,4,4,2,3,3,1,1,1,3,3,1,0],symbols=[0,1,1,2,3,0,1,2,3,4,1,1,4,0,4,4,0,1,4,4,2,0,0,2,3,2];
 function code(){let sel=[],target=round===1?[0,13,15,22]:shuffle(seq(26)).slice(0,4).sort((a,b)=>a-b),num=i=>i+1,distinct=(a,table)=>new Set(a.map(i=>table[i])).size,sum=a=>a.reduce((s,i)=>s+num(i),0),cs=distinct(target,colors),ss=distinct(target,symbols);
 let clues=['四張牌嘅數字總和係 '+sum(target),'一共用咗 '+cs+' 種顏色','一共用咗 '+ss+' 種圖形'];let extra;if(round===1){clues.push('第一同第四張嘅數字相乘 ≤ 50','最大同最細數字相加 ≥ 20','第三張屬於全副牌最少見嘅顏色');extra=a=>num(a[0])*num(a[3])<=50&&num(a[0])+num(a[3])>=20&&colors[a[2]]===4}else{clues.push('第四張減第二張等於 '+(target[3]-target[1]),'第一張嘅圖形係 '+shapes[symbols[target[0]]],'第三張嘅圖形係 '+shapes[symbols[target[2]]]);extra=a=>a[3]-a[1]===target[3]-target[1]&&symbols[a[0]]===symbols[target[0]]&&symbols[a[2]]===symbols[target[2]]}
-$('board').classList.add('codepanel');$('board').innerHTML='<ol class="clues">'+clues.map(s=>'<li>'+s+'</li>').join('')+'</ol><div class="tokens">'+seq(26).map(i=>'<button class="token" style="background:'+palette[colors[i]]+'">'+letter(i)+'<br>'+num(i)+'<br><small>'+shapes[symbols[i]]+'</small></button>').join('')+'</div>';controls('<strong id="selection">— — — —</strong>');$('board').querySelectorAll('button').forEach((b,i)=>b.onclick=()=>{if(finished)return;if(sel.includes(i))sel=sel.filter(v=>v!==i);else if(sel.length<4)sel.push(i);sel.sort((a,b)=>a-b);b.classList.toggle('sel',sel.includes(i));$('selection').textContent=sel.map(letter).join(' ')+' —'.repeat(4-sel.length)});check=()=>sel.length===4&&sum(sel)===sum(target)&&distinct(sel,colors)===cs&&distinct(sel,symbols)===ss&&extra(sel)}
-function fence(){let n=10,edges=[],lookup=new Map(),cells=[],history=[];let top=seq(n).map(()=>Math.floor(Math.random()*4)),bottom=seq(n).map(()=>6+Math.floor(Math.random()*4)),inside=(x,y)=>x>=0&&x<n&&y>=top[x]&&y<=bottom[x];function edge(x,y,v){let a=y*(n+1)+x,b=a+(v?n+1:1),real=v?inside(x-1,y)!==inside(x,y):inside(x,y-1)!==inside(x,y);lookup.set([x,y,v].join(),edges.length);edges.push({a,b,x,y,v,real,state:0})}
+const valid=values=>validIndices(values,4,26)&&sum(values)===sum(target)&&distinct(values,colors)===cs&&distinct(values,symbols)===ss&&extra(values);
+if(online?.raceCheck){online.verify=proof=>Array.isArray(proof)&&valid(proof.slice().sort((a,b)=>a-b))?0:null;return}
+$('board').classList.add('codepanel');$('board').innerHTML='<ol class="clues">'+clues.map(s=>'<li>'+s+'</li>').join('')+'</ol><div class="tokens">'+seq(26).map(i=>'<button class="token" style="background:'+palette[colors[i]]+'">'+letter(i)+'<br>'+num(i)+'<br><small>'+shapes[symbols[i]]+'</small></button>').join('')+'</div>';controls('<strong id="selection">— — — —</strong>');$('board').querySelectorAll('button').forEach((b,i)=>b.onclick=()=>{if(finished)return;if(sel.includes(i))sel=sel.filter(v=>v!==i);else if(sel.length<4)sel.push(i);sel.sort((a,b)=>a-b);b.classList.toggle('sel',sel.includes(i));$('selection').textContent=sel.map(letter).join(' ')+' —'.repeat(4-sel.length)});check=()=>{raceProof=[...sel];return valid(sel)}}
+function fence(){let n=10,edges=[],lookup=new Map(),cells=[],history=[];let top=seq(n).map(()=>Math.floor(gameRandom()*4)),bottom=seq(n).map(()=>6+Math.floor(gameRandom()*4)),inside=(x,y)=>x>=0&&x<n&&y>=top[x]&&y<=bottom[x];function edge(x,y,v){let a=y*(n+1)+x,b=a+(v?n+1:1),real=v?inside(x-1,y)!==inside(x,y):inside(x,y-1)!==inside(x,y);lookup.set([x,y,v].join(),edges.length);edges.push({a,b,x,y,v,real,state:0})}
 for(let y=0;y<=n;y++)for(let x=0;x<=n;x++){if(x<n)edge(x,y,0);if(y<n)edge(x,y,1)}
-for(let y=0;y<n;y++)for(let x=0;x<n;x++){let ids=[[x,y,0],[x,y,1],[x+1,y,1],[x,y+1,0]].map(k=>lookup.get(k.join()));cells.push({x,y,ids,clue:Math.random()<.15?null:ids.filter(i=>edges[i].real).length})}
+for(let y=0;y<n;y++)for(let x=0;x<n;x++){let ids=[[x,y,0],[x,y,1],[x+1,y,1],[x,y+1,0]].map(k=>lookup.get(k.join()));cells.push({x,y,ids,clue:gameRandom()<.15?null:ids.filter(i=>edges[i].real).length})}
+function validLoop(proof){
+  if(!Array.isArray(proof)||!proof.length||!validIndices(proof,proof.length,edges.length))return false;
+  const chosen=new Set(proof);
+  if(cells.some(c=>c.clue!==null&&c.ids.filter(i=>chosen.has(i)).length!==c.clue)){feedback='仲有數字同四邊嘅線數未吻合。';return false}
+  const graph=new Map();
+  for(const i of proof){const {a,b}=edges[i];for(const [from,to] of [[a,b],[b,a]]){if(!graph.has(from))graph.set(from,[]);graph.get(from).push(to)}}
+  if([...graph.values()].some(list=>list.length!==2)){feedback='檢查斷口同分叉，每個經過嘅點都要連兩條線。';return false}
+  const visited=new Set(),stack=[graph.keys().next().value];
+  while(stack.length){const a=stack.pop();if(!visited.has(a)){visited.add(a);stack.push(...graph.get(a))}}
+  const valid=visited.size===graph.size;
+  feedback=valid?'完成！所有提示吻合，而且只有一個閉環。':'而家有多過一個圈。';
+  return valid;
+}
+if(online?.raceCheck){online.verify=proof=>validLoop(proof)?0:null;return}
 function paint(){let graphic='';for(let c of cells)if(c.clue!==null)graphic+='<text x="'+(c.x+.5)+'" y="'+(c.y+.68)+'" text-anchor="middle" font-size=".53" font-family="Georgia" fill="#3c3230">'+c.clue+'</text>';
 for(let e of edges){let x2=e.x+(e.v?0:1),y2=e.y+(e.v?1:0);graphic+='<path d="M'+e.x+' '+e.y+'L'+x2+' '+y2+'" stroke="'+(e.state===1?'#844033':'#ccc4b2')+'" stroke-width="'+(e.state===1?'.12':'.025')+'"/>';if(e.state===2)graphic+='<text x="'+((e.x+x2)/2)+'" y="'+((e.y+y2)/2+.13)+'" text-anchor="middle" font-size=".45" fill="#8a7766">×</text>'}
 for(let y=0;y<=n;y++)for(let x=0;x<=n;x++)graphic+='<circle cx="'+x+'" cy="'+y+'" r=".07" fill="#342c27"/>';
 $('board').innerHTML='<svg class="fence" viewBox="-.45 -.45 10.9 10.9" aria-label="十乘十圍欄棋盤">'+graphic+'</svg>';let svg=$('board').firstChild;svg.onclick=ev=>{if(finished)return;let p=new DOMPoint(ev.clientX,ev.clientY).matrixTransform(svg.getScreenCTM().inverse());let mx=Math.round(p.x),my=Math.round(p.y),v=+(Math.abs(p.x-mx)<Math.abs(p.y-my)),id=lookup.get([v?mx:Math.floor(p.x),v?Math.floor(p.y):my,v].join());if(id===undefined)return;history.push(id);edges[id].state=(edges[id].state+1)%3;paint()}}
-paint();controls('<button id="undo">復原一步</button>');$('undo').onclick=()=>{let id=history.pop();if(id!==undefined){edges[id].state=(edges[id].state+2)%3;paint()}};check=()=>{if(cells.some(c=>c.clue!==null&&c.ids.filter(i=>edges[i].state===1).length!==c.clue)){feedback='仲有數字同四邊嘅線數未吻合。';return false}let graph=new Map();for(let e of edges.filter(e=>e.state===1))for(let [a,b] of [[e.a,e.b],[e.b,e.a]]){if(!graph.has(a))graph.set(a,[]);graph.get(a).push(b)}if(!graph.size||[...graph.values()].some(list=>list.length!==2)){feedback='檢查斷口同分叉，每個經過嘅點都要連兩條線。';return false}let visited=new Set(),stack=[graph.keys().next().value];while(stack.length){let a=stack.pop();if(!visited.has(a)){visited.add(a);stack.push(...graph.get(a))}}let valid=visited.size===graph.size;feedback=valid?'完成！所有提示吻合，而且只有一個閉環。':'而家有多過一個圈。';return valid}}
+paint();controls('<button id="undo">復原一步</button>');$('undo').onclick=()=>{let id=history.pop();if(id!==undefined){edges[id].state=(edges[id].state+2)%3;paint()}};
+check=()=>{raceProof=edges.flatMap((edge,i)=>edge.state===1?[i]:[]);return validLoop(raceProof)};
+}
 function wallGo(){
+  if(online){wallMatch(online.count,true);return}
   $('board').innerHTML='<div class="wgSetup"><strong>對局人數</strong><div id="wgModes"></div><label><input type="checkbox" id="wgLocal"> 同一部機輪流玩</label></div>';
   $('msg').textContent='單人玩時，其餘位置由電腦控制。';
   for(const n of [2,3,4]){
@@ -200,7 +239,7 @@ function wallMatch(count,local){
           return ds;
         });
         const others=players.slice().filter(o=>o!==turn);
-        let v=2*a.points[turn]-Math.max(...others.map(o=>a.points[o]))-(m.broken!==null?2:0)+Math.random()*.35;
+        let v=2*a.points[turn]-Math.max(...others.map(o=>a.points[o]))-(m.broken!==null?2:0)+gameRandom()*.35;
         for(const i of cells)if(dist[turn][i]<Math.min(...others.map(o=>dist[o][i])))v++;
         walls.delete(e);if(m.broken!==null)walls.add(m.broken);
         if(v>best){best=v;choice=[m,d]}
@@ -220,8 +259,8 @@ function wallMatch(count,local){
     timer=setTimeout(()=>{
       if(phase==='place'){
         const free=cells.filter(i=>!at(i));
-        if(!pieces.some(p=>p.o===turn))shape=+(Math.random()<.5);
-        const ranked=free.map(i=>[i,Math.random()*3+Math.min(4,...pieces.map(p=>Math.abs(i%7-p.i%7)+Math.abs((i/7|0)-(p.i/7|0))))]);
+        if(!pieces.some(p=>p.o===turn))shape=+(gameRandom()<.5);
+        const ranked=free.map(i=>[i,gameRandom()*3+Math.min(4,...pieces.map(p=>Math.abs(i%7-p.i%7)+Math.abs((i/7|0)-(p.i/7|0))))]);
         place(ranked.sort((a,b)=>b[1]-a[1])[0][0]);
       }else botMove();
     },350);
@@ -236,8 +275,12 @@ function wallMatch(count,local){
   function render(territory=[]){
     const placing=phase==='place',end=phase==='end',human=(local||turn===0)&&!end;
     const own=options.filter(m=>m.p.i===pick);
-    $('board').innerHTML='<div class="wgTop">'+(end?'終局':names[turn]+(placing?'　佈棋':'　行棋'))+'</div><div class="wgGrid"></div><div class="wgKey">'+names.join('　')+'</div>';
-    const grid=$('board').querySelector('.wgGrid');
+    if(online)online.focus(turn,false,end);
+    const top=tableText($('board'),end?'終局':names[turn]+(placing?'　佈棋':'　行棋'),'div');
+    top.className='wgTop';
+    const grid=document.createElement('div');grid.className='wgGrid';
+    const keyLabel=document.createElement('div');keyLabel.className='wgKey';keyLabel.textContent=names.join('　');
+    $('board').replaceChildren(top,grid,keyLabel);
     for(const i of cells){
       const p=pending&&i===pending.to?pending.p:pending&&i===pending.p.i?null:at(i);
       const b=document.createElement('button');b.className='wgCell';b.setAttribute('aria-label',coord(i)+(p?' '+names[p.o]+token(p)+'棋':''));
@@ -275,7 +318,7 @@ function wallMatch(count,local){
     if(human&&choices.length)choices.forEach(m=>button(m.broken===null?'沿通道行':'拆 '+coord(Math.floor(m.broken/49))+'–'+coord(m.broken%49)+' 之間嘅牆',()=>{pending=m;choices=[];render()}));
 
     if(human&&(pending||choices.length))button('重新揀步',()=>{pending=null;choices=[];render()});
-    if(end){button('再玩一局',()=>wallMatch(count,local));button('揀對局人數',next)}
+    if(end&&!online){button('再玩一局',()=>wallMatch(count,local));button('揀對局人數',next)}
   }
   render();
 }
@@ -291,7 +334,7 @@ function challengeButton(parent,label,action,active=true){
 function challengeStatus(text,ended=false){
   $('msg').textContent=text;
   $('controls').innerHTML='';
-  if(ended)challengeButton($('controls'),'再玩一局',next);
+  if(ended&&!online&&!raceFinish)challengeButton($('controls'),'再玩一局',next);
 }
 function challengeGrid(size,content,active,select){
   $('board').innerHTML='';
@@ -370,6 +413,7 @@ function millCourt(){
     if(inMill(i,turn)&&board.includes(other())){take=true;render()}else advance();
   }
   function render(){
+    if(online)online.focus(turn-1,false,!!outcome);
     pointBoard(size,points,edges,i=>marks[board[i]],active,play);
     if(selected>=0)$('board').firstChild.querySelectorAll('button')[points.indexOf(selected)].classList.add('challengeSelected');
     challengeStatus(outcome||marks[turn]+'　'+(take?'揀一粒對手棋移除':placing()?'放棋（尚餘 '+stock[turn]+' 粒）':selected<0?'揀棋移動':'揀空點'),!!outcome);
@@ -396,6 +440,7 @@ function fogLinks(){
   }
   function render(){
     const done=!!winner||moves===n*n;
+    if(online)online.focus(turn-1,false,done);
     challengeGrid(n,i=>done||revealed?marks[board[i]]:board[i]?'◉':'',i=>!done&&!revealed&&!board[i],play);
     challengeStatus(done?(winner?marks[winner]+' 五連勝出':'滿盤平手'):revealed?'全盤揭示。記住棋子位置。':marks[turn]+' 落子　｜　第 '+(moves+1)+' 步',done);
     if(revealed&&!done)challengeButton($('controls'),'收起棋色，繼續',()=>{revealed=false;render()});
@@ -524,10 +569,12 @@ function tableSelect(parent,title,entries,selected=0){
   return select;
 }
 function tableHandoff(player,message,after){
+  if(online){online.focus(online.roles.indexOf(player),true);after();return}
   const board=gameTable(player+' 接手',message);
   challengeButton(tableActions(board),'準備好',after);
 }
 function tableRestart(){
+  if(online){online.focus(online.seat,false,true);return}
   challengeButton($('controls'),'再玩一局',next);
 }
 
@@ -535,7 +582,7 @@ function cardForecast(){
   const labels=['玩家一','玩家二'];
   const stock=[seq(11),seq(11)], dealers=seq(2).map(()=>shuffle(seq(9).map(i=>i+1)));
   const chips=[10,10];
-  let local=false,roundNo=0,face,hidden,last='';
+  let local=!!online,roundNo=0,face,hidden,last='';
   const actor=()=>roundNo%2;
   const guesser=()=>1-actor();
   const name=i=>local?labels[i]:['你','電腦'][i];
@@ -555,7 +602,7 @@ function cardForecast(){
       const cards=stock[1];
       const good=cards.filter(n=>n>face);
       const bad=cards.filter(n=>n<=face);
-      hidden=good.length&&(!bad.length||Math.random()<.73)?good.at(-1):bad[0];
+      hidden=good.length&&(!bad.length||gameRandom()<.73)?good.at(-1):bad[0];
       chooseBet();
     }
   }
@@ -573,7 +620,7 @@ function cardForecast(){
           const unknown=stock[0];
           const high=unknown.filter(n=>n>face).length;
           const low=unknown.filter(n=>n<face).length;
-          settle(Math.random()<.75?(high>=low?1:-1):(high>=low?-1:1),Math.min(chips[1],1+Math.floor(Math.random()*3)));
+          settle(gameRandom()<.75?(high>=low?1:-1):(high>=low?-1:1),Math.min(chips[1],1+Math.floor(gameRandom()*3)));
         }
       });
       button.classList.add('table-card-pick');
@@ -600,6 +647,7 @@ function cardForecast(){
     roundNo++;
     const done=roundNo===18||chips.includes(0);
     const result=chips[0]===chips[1]?'和局':name(chips[0]>chips[1]?0:1)+' 勝出';
+    if(online)online.focus(b,false,done);
     const board=gameTable(done?result:'第 '+roundNo+' 手結算');
     balances(board);
     forecastCards(board,true);
@@ -607,6 +655,7 @@ function cardForecast(){
     if(done)tableRestart();
     else challengeButton(tableActions(board),'下一手',begin);
   }
+  if(online){begin();return}
   const board=gameTable('猜大小','互換出牌同下注角色，每人開局 10 籌碼。');
   const row=tableActions(board);
   challengeButton(row,'對電腦',begin);
@@ -673,6 +722,7 @@ function signalQuestions(){
       bids[p]=amount.selectedIndex;
       if(p===0){passBet(1);return}
       for(const i of seq(2))chips[i]+=2-bids[i];
+      if(online)online.focus(1,false);
       const board=gameTable('第 '+handNo+' 輪開標','雙方各補 2 枚代幣，投標金額保密。');
       if(bids[0]===bids[1])challengeButton(tableActions(board),'同注，重新投標',advance);
       else{
@@ -741,6 +791,7 @@ function signalQuestions(){
     });
     challengeButton(actions,'返回',()=>act(p));
   }
+  if(online){online.focus(0,true);arrange(0);return}
   const board=gameTable('問題與真相','本機雙人交機對戰。系統會按真實牌序回答，對手嘅暗牌會保密。');
   challengeButton(tableActions(board),'開始排牌',()=>arrange(0));
 }
@@ -758,7 +809,8 @@ function sniperBest(cards){
   return cards.map((_,i)=>sniperFive(cards.filter((_,j)=>i!==j))).sort((a,b)=>b.key-a.key)[0];
 }
 function pokerExchange(){
-  const names=['你','電腦一','電腦二','電腦三','電腦四'];
+  const names=online?seq(5).map(i=>i<online.count?'玩家 '+(i+1):'電腦 '+(i+1-online.count)):['你','電腦一','電腦二','電腦三','電腦四'];
+  const human=id=>id<(online?.count||1);
   const players=names.map((name,id)=>({name,id,chips:60,safe:false,cards:[],folded:false,total:0,paid:0}));
   const label=h=>sniperKinds[h.kind]+' '+h.top;
   let dealer=0,handNo=0,shared,stage,pending,turn,lead,pot,snipes,events,lastResult='';
@@ -837,7 +889,7 @@ function pokerExchange(){
       for(const recipient of others){
         if(!recipient.chips&&p.chips){p.chips--;recipient.chips++;events.push(p.name+' 分 1 籌碼畀 '+recipient.name+'。')}
       }
-      if(p.id===0&&p.chips){
+      if(human(p.id)&&p.chips){
         stage=4;
         renderGift(p);
         return;
@@ -852,6 +904,7 @@ function pokerExchange(){
     render();
   }
   function renderGift(p){
+    if(online)online.focus(p.id,false);
     const board=gameTable('你已晉級 · 分派剩餘籌碼',totals());
     tableText(board,'仲有 '+p.chips+' 籌碼可以分配。籌碼用完後完成結算。');
     const row=tableActions(board);
@@ -869,15 +922,15 @@ function pokerExchange(){
   function botBet(){
     const p=players[turn],cap=maxBet(),call=lead-p.paid;
     const good=stage===1?sniperBest([...p.cards,...shared]).kind>=2:p.cards[0]===p.cards[1]||Math.max(...p.cards)>=8;
-    if(cap>lead&&Math.random()<(good?.55:.29)){
-      const inc=1+Math.floor(Math.random()*Math.min(cap-lead,handNo>15?15:6));
+    if(cap>lead&&gameRandom()<(good?.55:.29)){
+      const inc=1+Math.floor(gameRandom()*Math.min(cap-lead,handNo>15?15:6));
       bet('raise',lead+inc);
-    }else if(call>0&&live().length>2&&p.chips>call&&Math.random()<(good?.07:.24))bet('fold');
+    }else if(call>0&&live().length>2&&p.chips>call&&gameRandom()<(good?.07:.24))bet('fold');
     else bet('call');
   }
   function botSnipe(){
     const p=players[turn];
-    if(Math.random()<.27){snipe(null);return}
+    if(gameRandom()<.27){snipe(null);return}
     const known=[...p.cards,...shared],own=sniperBest(known);
     const unseen=seq(40).map(i=>1+i%10);
     known.forEach(n=>unseen.splice(unseen.indexOf(n),1));
@@ -900,14 +953,16 @@ function pokerExchange(){
         continue;
       }
       turn=pending.shift();
-      if(turn===0){render();return}
+      if(human(turn)){render();return}
       if(stage===2)botSnipe();
       else botBet();
     }
   }
   function render(){
     const complete=stage===3&&remaining().length===1;
-    const board=gameTable(complete?(players[0].safe?'你已成功晉級':'你成為最後一位，出局'):'狙擊撲克 · 第 '+handNo+' 手');
+    if(online)online.focus(stage===3?0:turn,stage!==3,complete);
+    const self=players[online?online.seat:0];
+    const board=gameTable(complete?(online?remaining()[0].name+' 出局':players[0].safe?'你已成功晉級':'你成為最後一位，出局'):'狙擊撲克 · 第 '+handNo+' 手');
     const stacks=tableTray(board);
     players.forEach(p=>{
       if(p.safe)tableText(stacks,p.name+' 已晉級','span').className='table-wallet';
@@ -919,9 +974,9 @@ function pokerExchange(){
       if(stage===0&&i>=2)tableCard(community,null,{hidden:true});
       else tableCard(community,card);
     });
-    if(!players[0].safe&&!players[0].folded){
+    if((!online||stage!==3)&&!self.safe&&!self.folded){
       const hand=tableTray(board,'你嘅底牌');
-      players[0].cards.forEach(card=>tableCard(hand,card));
+      self.cards.forEach(card=>tableCard(hand,card));
     }
     if(lastResult)tableText(board,lastResult);
     if(events.length){
@@ -941,7 +996,7 @@ function pokerExchange(){
       return;
     }
     if(stage===2){
-      tableText(board,'你嘅最佳牌型：'+label(sniperBest([...players[0].cards,...shared])));
+      tableText(board,'你嘅最佳牌型：'+label(sniperBest([...self.cards,...shared])));
       const kind=tableSelect(row,'狙擊牌型',sniperKinds);
       const top=tableSelect(row,'牌型主點數',seq(10).map(i=>i+1));
       challengeButton(row,'狙擊',()=>{
@@ -951,7 +1006,7 @@ function pokerExchange(){
       challengeButton(row,'略過狙擊',()=>{snipe(null);run()});
       return;
     }
-    const call=lead-players[0].paid;
+    const call=lead-self.paid;
     challengeButton(row,call?'跟注 '+call:'過牌',()=>{bet('call');run()});
     challengeButton(row,'棄牌',()=>{bet('fold');run()});
     const cap=maxBet();
@@ -960,6 +1015,7 @@ function pokerExchange(){
       challengeButton(row,lead?'加注':'下注',()=>{bet('raise',lead+1+amount.selectedIndex);run()});
     }
   }
+  if(online){startHand();return}
   const board=gameTable('狙擊撲克','五人局，你對四個電腦。每人 60 籌碼，交回 75 即晉級。兩輪下注後可以狙擊指定牌型同主點數。');
   challengeButton(tableActions(board),'開始對戰',startHand);
 }
@@ -975,7 +1031,9 @@ function heavyPlace(scale,weight){
   return penalty;
 }
 function sumThirteen(){
-  const players=['你','電腦一','電腦二','電腦三','電腦四','電腦五','電腦六'];
+  const players=online?seq(7).map(i=>i<online.count?'玩家 '+(i+1):'電腦 '+(i+1-online.count)):['你','電腦一','電腦二','電腦三','電腦四','電腦五','電腦六'];
+  const humans=online?.count||1;
+  let locked=[];
   const colors=['紅','綠','藍','彩虹'];
   const stock=()=>players.map(()=>({cards:seq(7),tokens:[2,2,2,1]}));
   const scales=[[],[],[]],scores=players.map(()=>0),latest=players.map(()=>-1);
@@ -1015,10 +1073,11 @@ function sumThirteen(){
     }
     return board;
   }
-  function choose(){
-    events=[];
+  function choose(player=0){
+    if(player===0){events=[];locked=[]}
+    if(online)online.focus(player,true);
     const board=status('秘密揀牌');
-    const stock=inventory[0];
+    const stock=inventory[player];
     let weight, color;
     function choices(title,entries,render,select){
       const tray=tableTray(board,title);
@@ -1042,7 +1101,7 @@ function sumThirteen(){
       tableChip(button,stock.tokens[value],value);
       tableText(button,colors[value],'span');
     },value=>{color=value});
-    const lock=challengeButton(tableActions(board),'鎖定重量同籌碼',()=>submit(weight,color),false);
+    const lock=challengeButton(tableActions(board),'鎖定重量同籌碼',()=>submit(player,weight,color),false);
   }
   function penaltyRisk(color,weight){
     return weightAt(color)+weight>=13?scales[color].length:0;
@@ -1053,11 +1112,14 @@ function sumThirteen(){
     return options.map(entry=>{
       const {color,weight}=entry;
       const risk=color===3?Math.min(...seq(3).map(c=>penaltyRisk(c,weight))):penaltyRisk(color,weight);
-      return {entry,score:Math.random()*3-risk*1.5+weight*.1-(color===3?.45:0)};
+      return {entry,score:gameRandom()*3-risk*1.5+weight*.1-(color===3?.45:0)};
     }).sort((a,b)=>b.score-a.score)[0].entry;
   }
-  function submit(weight,color){
-    const entries=[{player:0,weight,color},...players.slice(1).map((_,i)=>botChoice(i+1))];
+  function submit(player,weight,color){
+    locked.push({player,weight,color});
+    if(player+1<humans){choose(player+1);return}
+    if(online)online.focus(0,false);
+    const entries=[...locked,...players.slice(humans).map((_,i)=>botChoice(i+humans))];
     for(const entry of entries){
       const held=inventory[entry.player];
       held.cards.splice(held.cards.indexOf(entry.weight),1);
@@ -1083,7 +1145,7 @@ function sumThirteen(){
       if(!queue.length){queue=deferred.reverse();deferred=[];placingDeferred=true}
       const entry=queue.shift();
       const {player,color,weight}=entry;
-      if(player===0){humanPlace(entry);return}
+      if(player<humans){humanPlace(entry);return}
       const target=color===3?seq(3).sort((a,b)=>penaltyRisk(a,weight)-penaltyRisk(b,weight)||weightAt(b)-weightAt(a))[0]:color;
       if(!placingDeferred&&queue.length&&penaltyRisk(target,weight)>0){
         deferred.push(entry);
@@ -1093,6 +1155,7 @@ function sumThirteen(){
     endRound();
   }
   function humanPlace(entry){
+    if(online)online.focus(entry.player,false);
     const targets=entry.color===3?seq(3):[entry.color];
     const board=status('輪到你放石 · '+entry.weight+' 重量',targets,color=>{place(entry,color);advance()});
     const item=tableTray(board,'撳亮邊嘅磅放石');
@@ -1101,14 +1164,15 @@ function sumThirteen(){
     const row=tableActions(board);
     if(!placingDeferred)challengeButton(row,'延後放石',()=>{
       deferred.push(entry);
-      events.push('你延後放石。');
+      events.push(players[entry.player]+' 延後放石。');
       advance();
     });
   }
   function endRound(){
     const final=roundNo===14;
+    if(online)online.focus(0,false,final);
     const ranking=seq(players.length).sort((a,b)=>scores[a]-scores[b]||latest[a]-latest[b]||a-b);
-    const board=status(final?'比賽結束 · '+(ranking.slice(-2).includes(0)?'你出局':'你成功留低'):'本輪結算');
+    const board=status(final?(online?'比賽結束':'比賽結束 · '+(ranking.slice(-2).includes(0)?'你出局':'你成功留低')):'本輪結算');
     if(final){
       ranking.forEach((id,i)=>tableText(board,(i+1)+'. '+players[id]+' · '+scores[id]+' 罰分'+(i>=players.length-2?'（出局）':'')));
       tableRestart();
@@ -1119,8 +1183,9 @@ function sumThirteen(){
       choose();
     });
   }
+  if(online){choose();return}
   const board=gameTable('Heavy 13','七人局，你對六個電腦。三個磅會保留累積重量，放到 13 或以上會受罰。14 輪後罰分最多嘅兩位出局。');
-  challengeButton(tableActions(board),'開始對戰',choose);
+  challengeButton(tableActions(board),'開始對戰',()=>choose());
 }
 
 function knightTour(){
@@ -1130,6 +1195,10 @@ function knightTour(){
     return dx*dy===2;
   }));
   const route=[shuffle([0,4,12,20,24])[0]];
+  if(online?.raceCheck){
+    online.verify=proof=>validIndices(proof,25,25)&&proof[0]===route[0]&&proof.slice(1).every((point,i)=>edges[proof[i]].includes(point))?0:null;
+    return;
+  }
   function play(i){route.push(i);render()}
   function search(current,seen,budget){
     if(seen.size===points.length)return true;
@@ -1148,7 +1217,7 @@ function knightTour(){
     const buttons=$('board').firstChild.children;
     if(hint>=0)buttons[hint].classList.add('challengeSelected');
     challengeStatus(won?'完成！25 格各行過一次。':'已到訪 '+route.length+'/25 格。 '+(checked&&hint<0?'未搵到可完成嘅下一步，試吓退一步。':!moves.length?'行唔通，退一步再試。':''),won);
-    if(won)return;
+    if(won){if(raceFinish)raceFinish([...route]);return}
     challengeButton($('controls'),'退一步',()=>{route.pop();render()},route.length>1);
     challengeButton($('controls'),'提示',()=>{
       const budget={left:40000};
@@ -1158,4 +1227,4 @@ function knightTour(){
   }
   render();
 }
-</script><script type="module" src="./multiplayer/client.mjs"></script></html>
+</script><script type="module" src="./multiplayer/client.mjs"></script><script type="module" src="./multiplayer/rooms-client.mjs"></script></html>

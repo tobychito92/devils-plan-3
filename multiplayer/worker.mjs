@@ -1,8 +1,9 @@
+import {Session, newSession} from './room-session.mjs';
 import {DurableObject} from 'cloudflare:workers';
 import {newGame, playMove, sheep, tiger} from './rules.mjs';
 
 const ttl = 24 * 60 * 60 * 1000;
-const roomRoute = /^\/api\/rooms\/([A-HJ-NP-Z2-9]{8})\/(create|join|state|move)$/;
+const roomRoute = /^\/api\/rooms\/([A-HJ-NP-Z2-9]{8})\/(create|join|state|move|start|act|finish)$/;
 const json = (data, status = 200) => Response.json(data, {status, headers: {'Cache-Control': 'no-store'}});
 const fail = (error, status) => json({error}, status);
 const view = (room, seat) => json({state: room.state, names: room.seats.map(player => player.name), seat, version: room.version});
@@ -49,6 +50,11 @@ export default {
 };
 
 export class GameRoom extends DurableObject {
+  sessions = new Session();
+
+  view(room, seat) {
+    return room.session ? json(this.sessions.view(room, seat)) : view(room, seat);
+  }
   async fetch(request) {
     let body;
     try { body = await request.json(); } catch { return fail('invalid', 400); }
@@ -60,17 +66,32 @@ export class GameRoom extends DurableObject {
       const room = stored && stored.expires > Date.now() ? stored : null;
       if (room) {
         const seat = room.seats.findIndex(player => player.token === body.token);
-        if (action === 'state') return seat < 0 ? fail('seat', 403) : view(room, seat);
-        if (action === 'create') return seat === 0 ? view(room, seat) : fail('occupied', 409);
+        if (action === 'state') {
+          if (seat < 0) return fail('seat', 403);
+          if (room.session && room.version === body.version) return json({unchanged: true});
+          return this.view(room, seat);
+        }
+        if (action === 'create') return seat === 0 ? this.view(room, seat) : fail('occupied', 409);
         if (action === 'join') {
-          if (seat >= 0) return view(room, seat);
-          if (room.seats.length === 2) return fail('full', 409);
-          room.seats.push({token: body.token, name: nickname(body.name, '玩家二')});
+          if (seat >= 0) return this.view(room, seat);
+          if (body.game !== undefined && body.game !== room.session?.game) return fail('game', 409);
+          if (room.seats.length === (room.session?.capacity || 2)) return fail('full', 409);
+          room.seats.push({token: body.token, name: nickname(body.name, '玩家 '+(room.seats.length+1))});
           room.version++;
           await this.save(room);
-          return view(room, 1);
+          return this.view(room, room.seats.length - 1);
         }
         if (seat < 0) return fail('seat', 403);
+        if (room.session) {
+          if (body.version !== room.version) return fail('stale', 409);
+          const error = this.sessions.apply(room, seat, action, body);
+          if (error === 'unchanged') return this.view(room, seat);
+          if (error) return fail(error, error === 'waiting' ? 409 : 422);
+          room.version++;
+          await this.save(room);
+          return this.view(room, seat);
+        }
+        if (action !== 'move') return fail('move', 422);
         if (room.seats.length < 2) return fail('waiting', 409);
         if (body.version !== room.version) return fail('stale', 409);
         const next = playMove(room.state, seat === 0 ? sheep : tiger, body.from, body.to);
@@ -78,12 +99,16 @@ export class GameRoom extends DurableObject {
         room.state = next;
         room.version++;
         await this.save(room);
-        return view(room, seat);
+        return this.view(room, seat);
       }
       if (action !== 'create') return fail('missing', 404);
       const fresh = {state: newGame(), seats: [{token: body.token, name: nickname(body.name, '玩家一')}], version: 0};
+      if (body.game !== undefined) {
+        fresh.session = newSession(body);
+        if (!fresh.session) return fail('game', 422);
+      }
       await this.save(fresh);
-      return view(fresh, 0);
+      return this.view(fresh, 0);
     });
   }
 
