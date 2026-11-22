@@ -20,6 +20,10 @@
 .pointBoard .challengeSelected{outline:3px solid #f4b43d;outline-offset:1px}
 </style><style>
 #board h3{margin:8px 0}.exchangeRow,.sumStrip{display:flex;gap:6px;align-items:center;margin-bottom:12px}.exchangeRow button{min-width:0;padding:6px;flex:1;max-width:80px;min-height:45px;background:#fff8ea;color:#26201b;font-weight:bold}.exchangeRow .red,.exchangeRival .red{color:#aa302c}.exchangeRow .exchangeUsed{opacity:.5}.exchangeRival{font-size:14px}.exchangeRow .challengeSelected,.sumStrip .challengeSelected{outline:3px solid #d29136;outline-offset:1px}.sumStrip strong{min-width:3em}.sumStrip button{min-width:0;min-height:44px;flex:1;max-width:85px;padding:5px}
+
+.match-actions label{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap;max-width:100%}
+.match-actions select{max-width:100%}.heavy-scale{padding:5px 8px;background:#fff8ea;border:1px solid #a99b85;border-radius:4px}
+#board details{margin:12px 0}#board details p{margin:6px 0}
 </style><main><header><span>THE DEVIL’S PLAN</span><span>DEAD AGAIN</span></header><section id="home"><h1>魔鬼的計謀</h1><p>單人挑戰・本機對戰</p><div class="list" id="menu"></div><footer>非官方可玩版 · 題板重繪</footer></section><section id="play" hidden><button class="link" onclick="lobby()">‹ 所有遊戲</button><h2 id="title"></h2><p id="hint"></p><div class="panel" id="board"></div><div id="controls" class="bar"></div><div class="msg" id="msg" role="status"></div></section></main>
 <script>
 const $=s=>document.getElementById(s), games=[
@@ -31,12 +35,12 @@ const $=s=>document.getElementById(s), games=[
 [48,'圍牆圍棋 II','Wall Go II','揀人數開局。方棋直行一至兩格；圓棋行一格後可以轉彎再行一格。行完直接撳棋格旁邊亮起嘅牆槽。領地分隔後計格數，同分鬥最大單幅領地。'],
 [13,'九子棋','Nine Men’s Morris','本機雙人。每方九粒棋，輪流放滿後沿線移動。三粒成線可食一粒對手棋，優先食未成線嘅棋。剩三粒可以飛去任何空點，剩兩粒或無棋可行就輸。'],
 [15,'盲五子棋','Blind Gomoku','本機雙人。棋色平時隱藏，此版本每六步揭示一次。橫、直或斜連五粒即勝。'],
-[28,'猜大小','High or Low','A 最細，K 最大。用遊戲點數押下一張牌高、低或同點。估中同點賺四倍押注，押高低遇同點退款。玩十二手。'],
+[28,'猜大小','Big and Small','輪流出暗牌同押大小。暗牌大過莊家就賺差額，押中亦可贏籌碼。'],
 [29,'虎羊棋','Bagh-Chal','本機雙人。四隻虎對二十隻羊，羊方先逐隻放棋，放完先可移動。虎沿線跳過一隻羊可以捕獲，捕五隻就贏。羊方困住四隻虎就贏。'],
-[30,'問題與真相','Question & Truth','自訂單人推理。四格密碼由 A 至 F 組成，字母各不相同。用六條問題同四次提交機會推斷排列。'],
-[21,'狙擊撲克','Poker Exchange','自訂單人換牌挑戰。先由換牌區換最多兩張，再同對手比五張牌嘅牌型。'],
+[30,'問題與真相','Question & Truth','本機雙人，各自秘密排八張牌。暗投代幣爭取提問或猜對手嘅牌序。'],
+[21,'狙擊撲克','Sniper Hold’em','兩輪下注後，可以狙擊指定牌型。最強未被狙擊嘅牌贏彩池，交回 75 籌碼晉級。'],
 [31,'騎士巡遊','Knight’s Tour','行日字步，走遍 5×5 棋盤，每格只可踏一次。㩒亮起嘅格移動，可以退步或睇提示。'],
-[37,'Heavy 13','Sum to Thirteen','自訂單人算術挑戰。喺三行各揀一張牌，總和要啱啱好係 13。每題得一組答案。']];
+[37,'Heavy 13','Heavy 13','秘密揀重量同顏色籌碼。令任何一磅到 13 或以上就會受罰。14 輪後罰分最多嘅兩位出局。']];
 const letter=i=>String.fromCharCode(65+i), seq=n=>Array.from({length:n},(_,i)=>i);
 function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 let mode,round,timer,answer,check,finished,feedback;
@@ -414,111 +418,563 @@ function ridgeEscape(){
   }
   render();
 }
-function cardForecast(){
-  const deck=shuffle(seq(13).flatMap(i=>[i+1,i+1,i+1,i+1]));
-  let card=deck.pop(),score=12,stake=1,played=0,message='揀押注點數，再估下一張。';
-  let done=false;
-  const label=n=>['','A',2,3,4,5,6,7,8,9,10,'J','Q','K'][n];
-  function guess(direction){
-    const old=card;card=deck.pop();played++;
-    const equal=card===old;
-    const correct=Math.sign(card-old)===direction;
-    if(!equal||direction===0)score+=correct?stake*(direction===0?4:1):-stake;
-    message=label(old)+' → '+label(card)+(equal&&direction!==0?'　同點退款':correct?'　估中':'　估錯');
-    done=played>=12||score===0;
-    render();
-  }
-  function render(){
-    $('board').innerHTML='<div class="challengeCenter"><strong class="forecastCard">'+label(card)+'</strong><p>點數 '+score+'　｜　已玩 '+played+'/12'+(done?'　｜　完局':'')+'</p></div>';
-    challengeStatus(message,done);
-    if(done)return;
-    const controls=$('controls');
-    const wager=document.createElement('label');wager.textContent='押注 ';
-    const select=document.createElement('select');
-    for(let i=1;i<=Math.min(score,4);i++){
-      const opt=document.createElement('option');opt.value=i;opt.textContent=i;select.append(opt);
-    }
-    stake=Math.min(stake,score);select.value=stake;select.onchange=()=>{stake=+select.value};
-    wager.append(select);controls.append(wager);
-    for(const [direction,name] of [[-1,'下一張較細'],[0,'同點'],[1,'下一張較大']])challengeButton(controls,name,()=>guess(direction));
-  }
-  render();
+function gameTable(title, detail=''){
+  const board=$('board');
+  board.innerHTML='';
+  $('controls').innerHTML='';
+  tableText(board,title,'h3');
+  if(detail)tableText(board,detail);
+  return board;
 }
-function signalQuestions(){
-  const symbols=['A','B','C','D','E','F'],secret=shuffle(symbols.slice()).slice(0,4);
-  const answers=[];let questions=6,tries=4,outcome='',note='',draft=[];
-  function ask(question,answer){
-    questions--;answers.push(question+'　'+answer);render();
-  }
-  function render(){
-    const board=$('board');board.innerHTML='';
-    const history=document.createElement('ol');
-    for(const row of answers){const li=document.createElement('li');li.textContent=row;history.append(li)}
-    if(answers.length)board.append(history);
-    const current=document.createElement('p');current.textContent='你嘅排列　'+seq(4).map(i=>draft[i]||'□').join('　');board.append(current);
-    challengeStatus(outcome||('剩餘 '+questions+' 條問題、'+tries+' 次提交。 '+note),!!outcome);
-    if(outcome)return;
-    const picker=document.createElement('div');picker.className='bar';board.append(picker);
-    for(const letter of symbols)challengeButton(picker,letter,()=>{draft.push(letter);render()},draft.length<4&&!draft.includes(letter));
-    challengeButton(picker,'清除',()=>{draft=[];render()},draft.length>0);
-    challengeButton($('controls'),'提交排列',()=>{
-      tries--;
-      const count=draft.filter((symbol,i)=>secret[i]===symbol).length;
-      if(count===4)outcome='成功！密碼係 '+secret.join('　');
-      else if(!tries)outcome='挑戰完結，密碼係 '+secret.join('　');
-      else{note='上次有 '+count+' 個位置正確。';answers.push(draft.join('')+'　'+count+' 個位置正確')}
-      render();
-    },draft.length===4);
-    if(!questions)return;
-    const queries=document.createElement('div');queries.className='bar';
-    const type=document.createElement('select');
-    for(const item of ['有冇呢個字母？','呢個字母喺前兩格？']){
-      const option=document.createElement('option');option.textContent=item;type.append(option);
-    }
-    queries.append(type);
-    const symbol=document.createElement('select');
-    for(const letter of symbols){const option=document.createElement('option');option.textContent=letter;symbol.append(option)}
-    queries.append(symbol);board.append(queries);
-    challengeButton(queries,'問線索',()=>{
-      const item=symbol.value,front=type.selectedIndex===1;
-      ask(front?item+' 喺前兩格？':'有冇 '+item+'？',(front?secret.slice(0,2):secret).includes(item)?'有':'冇');
-    });
-  }
-  render();
+function tableText(parent,text,tag='p'){
+  const element=document.createElement(tag);
+  element.textContent=text;
+  parent.append(element);
+  return element;
+}
+function tableActions(parent){
+  const row=document.createElement('div');
+  row.className='bar match-actions';
+  parent.append(row);
+  return row;
+}
+function tableSelect(parent,title,entries,selected=0){
+  const label=document.createElement('label');
+  label.append(title+' ');
+  const select=document.createElement('select');
+  select.setAttribute('aria-label',title);
+  entries.forEach((entry,i)=>select.add(new Option(String(entry),i)));
+  select.selectedIndex=selected;
+  label.append(select);
+  parent.append(label);
+  return select;
+}
+function tableHandoff(player,message,after){
+  const board=gameTable(player+' 接手',message);
+  challengeButton(tableActions(board),'準備好',after);
+}
+function tableRestart(){
+  challengeButton($('controls'),'再玩一局',next);
 }
 
-function pokerExchange(){
-  const deck=shuffle(seq(52)), player=deck.slice(0,5), market=deck.slice(5,8), rival=deck.slice(8,13);
-  const kinds=['高牌','一對','兩對','三條','順子','同花','葫蘆','四條','同花順'];
-  const kind=cards=>kinds[Math.floor(hand(cards)/15**5)];
-  let swaps=2, selected=-1, complete=false;
-  const used=new Set();
-  function render(){
-    const board=$('board');
-    board.innerHTML='';
-    for(const [title,cards,isPlayer] of [['你嘅手牌',player,true],['換牌區',market,false]]){
-      const label=document.createElement('h3');label.textContent=title;board.append(label);
-      const row=document.createElement('div');row.className='exchangeRow';board.append(row);
-      cards.forEach((value,i)=>{
-        const button=challengeButton(row,'',()=>{
-          if(isPlayer)selected=selected===i?-1:i;
-          else{[player[selected],market[i]]=[market[i],player[selected]];used.add(i);swaps--;selected=-1}
-          render();
-        },!complete&&swaps>0&&(isPlayer||selected>=0&&!used.has(i)));
-        button.innerHTML=card(value);
-        if(isPlayer&&selected===i)button.classList.add('challengeSelected');
-        if(!isPlayer&&used.has(i))button.classList.add('exchangeUsed');
-      });
+function cardForecast(){
+  const labels=['玩家一','玩家二'];
+  const stock=[seq(11),seq(11)], dealers=seq(2).map(()=>shuffle(seq(9).map(i=>i+1)));
+  const chips=[10,10];
+  let local=false,roundNo=0,face,hidden,last='';
+  const actor=()=>roundNo%2;
+  const guesser=()=>1-actor();
+  const name=i=>local?labels[i]:['你','電腦'][i];
+  const summary=()=>name(0)+' '+chips[0]+' 籌碼 ｜ '+name(1)+' '+chips[1]+' 籌碼';
+  function begin(){
+    face=dealers[actor()].pop();
+    if(local)tableHandoff(name(actor()),'今手由你睇莊家牌，再暗出一張。',chooseCard);
+    else if(actor()===0)chooseCard();
+    else{
+      const cards=stock[1];
+      const good=cards.filter(n=>n>face);
+      const bad=cards.filter(n=>n<=face);
+      hidden=good.length&&(!bad.length||Math.random()<.73)?good.at(-1):bad[0];
+      chooseBet();
     }
-    const row=document.createElement('div');row.className='exchangeRival';
-    row.innerHTML='對手手牌　'+(complete?rival.map(card).join('　'):'蓋牌');
-    board.append(row);
-    const score=hand(player),target=hand(rival);
-    challengeStatus(complete?(score>target?'你贏咗！':score<target?'對手勝出。':'平手。')+' 你：'+kind(player)+' ｜ 對手：'+kind(rival):'你有 '+kind(player)+'，尚餘 '+swaps+' 次換牌。',complete);
-    if(!complete)challengeButton($('controls'),'攤牌比大小',()=>{complete=true;render()});
   }
-  render();
+  function chooseCard(){
+    const board=gameTable('第 '+(roundNo+1)+'／18 手 · 莊家 '+face,summary());
+    tableText(board,'揀一張暗牌。高過莊家就賺兩張牌嘅差額。');
+    const row=tableActions(board);
+    stock[actor()].forEach(card=>challengeButton(row,String(card),()=>{
+      hidden=card;
+      if(local)tableHandoff(name(guesser()),'對手已經落暗牌，輪到你押大小。',chooseBet);
+      else{
+        const unknown=stock[0];
+        const high=unknown.filter(n=>n>face).length;
+        const low=unknown.filter(n=>n<face).length;
+        settle(Math.random()<.75?(high>=low?1:-1):(high>=low?-1:1),Math.min(chips[1],1+Math.floor(Math.random()*3)));
+      }
+    }));
+  }
+  function chooseBet(){
+    const board=gameTable('第 '+(roundNo+1)+'／18 手 · 莊家 '+face,summary());
+    tableText(board,name(actor())+' 已出暗牌。對手尚有：'+stock[actor()].join('、'));
+    const row=tableActions(board);
+    const amount=tableSelect(row,'押注',seq(chips[guesser()]).map(i=>i+1));
+    challengeButton(row,'押大',()=>settle(1,amount.selectedIndex+1));
+    challengeButton(row,'押細',()=>settle(-1,amount.selectedIndex+1));
+  }
+  function settle(direction,amount){
+    const a=actor(),b=guesser(),diff=hidden-face;
+    stock[a].splice(stock[a].indexOf(hidden),1);
+    chips[a]+=Math.max(0,diff);
+    const delta=diff===0?0:Math.sign(diff)===direction?amount:-amount;
+    chips[b]+=delta;
+    last=name(a)+' 出 '+hidden+'，莊家 '+face+'，出牌獎勵 +'+Math.max(0,diff)+'。'+name(b)+' 押'+(direction===1?'大':'細')+' '+amount+'，'+(delta===0?'同點退回押注。':delta>0?'猜中，淨贏 '+delta+'。':'猜錯，扣 '+amount+'。');
+    roundNo++;
+    const done=roundNo===18||chips.includes(0);
+    const result=chips[0]===chips[1]?'和局':name(chips[0]>chips[1]?0:1)+' 勝出';
+    const board=gameTable(done?result:'第 '+roundNo+' 手結算',summary());
+    tableText(board,last);
+    if(done)tableRestart();
+    else challengeButton(tableActions(board),'下一手',begin);
+  }
+  const board=gameTable('猜大小','互換出牌同下注角色，每人開局 10 籌碼。');
+  const row=tableActions(board);
+  challengeButton(row,'對電腦',begin);
+  challengeButton(row,'本機雙人',()=>{local=true;begin()});
 }
+
+const truthRanks=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const truthValue=card=>card%13+1;
+const truthSuit=card=>Math.floor(card/13);
+const truthLabel=card=>truthRanks[card%13]+suits[truthSuit(card)];
+const truthQuestionLabels=['指定三個位置嘅點數總和','指定花色嘅點數總和','字母牌嘅點數總和','數字牌嘅點數總和','字母牌有幾多張','數字牌有幾多張','指定點數有幾多張','指定花色喺邊啲位置','同點數嘅牌喺邊啲位置','相連點數嘅牌喺邊啲位置','最大或最小點數嘅牌喺邊啲位置'];
+function truthAnswer(cards,q,args){
+  const values=cards.map(truthValue);
+  const letters=values.map((v,i)=>v===1||v>=11?i:-1).filter(i=>i>=0);
+  const numbers=seq(8).filter(i=>!letters.includes(i));
+  const matchingSuit=seq(8).filter(i=>truthSuit(cards[i])===args[0]);
+  const sum=indices=>String(indices.reduce((s,i)=>s+values[i],0));
+  const positions=indices=>indices.length?indices.map(i=>i+1).join('、'):'冇';
+  switch(q){
+    case 0:return sum(args);
+    case 1:return sum(matchingSuit);
+    case 2:return sum(letters);
+    case 3:return sum(numbers);
+    case 4:return String(letters.length);
+    case 5:return String(numbers.length);
+    case 6:return String(values.filter(v=>v===args[0]+1).length);
+    case 7:return positions(matchingSuit);
+    case 8:return values.filter((v,i)=>values.indexOf(v)===i&&values.lastIndexOf(v)!==i).map(v=>positions(seq(8).filter(i=>values[i]===v))).join(' ｜ ')||'冇';
+    case 9:return positions(seq(8).filter(i=>values.includes(values[i]-1)||values.includes(values[i]+1)));
+    default:return positions(seq(8).filter(i=>values[i]===(args[0]?Math.min(...values):Math.max(...values))));
+  }
+}
+function signalQuestions(){
+  const names=['玩家一','玩家二'], secrets=[[],[]], chips=[10,10], bids=[0,0], history=[[],[]];
+  let handNo=1;
+  function arrange(p){
+    const cards=secrets[p];
+    function paint(){
+      const board=gameTable(names[p]+' · 密排八張牌','同花色嘅牌要由左到右遞增。A 當 1，J、Q、K 當 11、12、13。');
+      tableText(board,cards.map(truthLabel).join('　')||'未揀牌');
+      const row=tableActions(board);
+      const options=seq(52).filter(card=>!cards.includes(card)&&!cards.some(c=>truthSuit(c)===truthSuit(card)&&truthValue(c)>truthValue(card)));
+      const select=tableSelect(row,'選牌',options.map(truthLabel));
+      challengeButton(row,'加入',()=>{cards.push(options[select.selectedIndex]);paint()},cards.length<8&&options.length>0);
+      challengeButton(row,'退一步',()=>{cards.pop();paint()},cards.length>0);
+      challengeButton(row,'鎖定牌序',()=>{
+        if(p===0)tableHandoff(names[1],'玩家一已鎖定，請揀你自己嘅八張牌。',()=>arrange(1));
+        else passBet(0);
+      },cards.length===8);
+    }
+    paint();
+  }
+  function passBet(p){
+    tableHandoff(names[p],'第 '+handNo+' 輪。請秘密提交代幣。',()=>bet(p));
+  }
+  function bet(p){
+    const other=1-p;
+    const board=gameTable(names[p]+' · 秘密投標','你有 '+chips[p]+' 枚代幣。'+(chips[other]<=5?'對手代幣警告燈亮起。':''));
+    const row=tableActions(board);
+    const amount=tableSelect(row,'投標',seq(chips[p]+1));
+    challengeButton(row,'確認投標',()=>{
+      bids[p]=amount.selectedIndex;
+      if(p===0){passBet(1);return}
+      for(const i of seq(2))chips[i]+=2-bids[i];
+      const board=gameTable('第 '+handNo+' 輪開標','雙方各補 2 枚代幣，投標金額保密。');
+      if(bids[0]===bids[1])challengeButton(tableActions(board),'同注，重新投標',advance);
+      else{
+        const winner=bids[0]>bids[1]?0:1;
+        challengeButton(tableActions(board),names[winner]+' 行動',()=>tableHandoff(names[winner],'你贏咗今輪投標。',()=>act(winner)));
+      }
+    });
+  }
+  function advance(){handNo++;passBet(0)}
+  function act(p){
+    const board=gameTable(names[p]+' · 選擇行動','可以問一條問題，或者提交完整八張牌嘅點數順序。');
+    if(history[p].length){
+      const list=document.createElement('ol');
+      history[p].forEach(entry=>tableText(list,entry,'li'));
+      board.append(list);
+    }
+    const row=tableActions(board);
+    challengeButton(row,'問題',()=>ask(p));
+    challengeButton(row,'真相',()=>guess(p));
+  }
+  function ask(p){
+    const board=gameTable('選擇問題');
+    const row=tableActions(board);
+    const types=tableSelect(row,'問題',truthQuestionLabels);
+    const fields=tableActions(board);
+    const actions=tableActions(board);
+    function configure(){
+      fields.innerHTML='';
+      const q=types.selectedIndex;
+      const inputs=q===0?seq(3).map(i=>tableSelect(fields,'位置 '+(i+1),seq(8).map(j=>j+1),i)):
+        [1,7].includes(q)?[tableSelect(fields,'花色',[...suits])]:
+        q===6?[tableSelect(fields,'點數',truthRanks)]:
+        q===10?[tableSelect(fields,'最大／最小',['最大','最小'])]:[];
+      actions.innerHTML='';
+      challengeButton(actions,'提問',()=>{
+        const args=inputs.map(input=>input.selectedIndex);
+        if(q===0&&new Set(args).size!==3){$('msg').textContent='請揀三個唔同位置。';return}
+        const detail=inputs.map(input=>input.selectedOptions[0].textContent).join('、');
+        const result=truthQuestionLabels[q]+(detail?'（'+detail+'）':'')+'：'+truthAnswer(secrets[1-p],q,args);
+        history[p].push(result);
+        $('msg').textContent='';
+        const board=gameTable(names[p]+' · 答覆',result);
+        challengeButton(tableActions(board),'下一輪',advance);
+      });
+      challengeButton(actions,'返回',()=>act(p));
+    }
+    types.onchange=configure;
+    configure();
+  }
+  function guess(p){
+    const board=gameTable('宣告真相','由左至右揀八張牌嘅點數。同點可以重複，花色毋須猜。');
+    const row=tableActions(board);
+    const inputs=seq(8).map(i=>tableSelect(row,'第 '+(i+1)+' 張',['—',...truthRanks]));
+    const actions=tableActions(board);
+    challengeButton(actions,'提交真相',()=>{
+      if(inputs.some(input=>input.selectedIndex===0)){$('msg').textContent='請填齊八張牌。';return}
+      $('msg').textContent='';
+      const win=inputs.every((input,i)=>input.selectedIndex===truthValue(secrets[1-p][i]));
+      const board=gameTable(win?names[p]+' 勝出':'宣告未命中',win?'對手牌序：'+secrets[1-p].map(truthLabel).join('　'):'至少有一個位置未猜中，進入下一輪。');
+      if(win)tableRestart();
+      else challengeButton(tableActions(board),'下一輪',advance);
+    });
+    challengeButton(actions,'返回',()=>act(p));
+  }
+  const board=gameTable('問題與真相','本機雙人交機對戰。系統會按真實牌序回答，對手嘅暗牌會保密。');
+  challengeButton(tableActions(board),'開始排牌',()=>arrange(0));
+}
+
+const sniperKinds=['高牌','一對','兩對','三條','順子','葫蘆','四條'];
+function sniperFive(cards){
+  const groups=[...new Set(cards)].map(n=>[n,cards.filter(c=>c===n).length]).sort((a,b)=>b[1]-a[1]||b[0]-a[0]);
+  const sorted=cards.slice().sort((a,b)=>b-a);
+  const straight=groups.length===5&&sorted[0]-sorted[4]===4;
+  const kind=groups[0][1]===4?6:groups[0][1]===3&&groups[1][1]===2?5:straight?4:groups[0][1]===3?3:groups[1][1]===2?2:groups[0][1]===2?1:0;
+  const top=groups[0][0];
+  return {kind,top,key:kind*11+top};
+}
+function sniperBest(cards){
+  return cards.map((_,i)=>sniperFive(cards.filter((_,j)=>i!==j))).sort((a,b)=>b.key-a.key)[0];
+}
+function pokerExchange(){
+  const names=['你','電腦一','電腦二','電腦三','電腦四'];
+  const players=names.map((name,id)=>({name,id,chips:60,safe:false,cards:[],folded:false,total:0,paid:0}));
+  const label=h=>sniperKinds[h.kind]+' '+h.top;
+  let dealer=0,handNo=0,shared,stage,pending,turn,lead,pot,snipes,events,lastResult='';
+  const remaining=()=>players.filter(p=>!p.safe);
+  const live=()=>remaining().filter(p=>!p.folded);
+  const ordered=(list,from)=>list.slice().sort((a,b)=>(a.id-from+5)%5-(b.id-from+5)%5);
+  const totals=()=>players.map(p=>p.name+' '+(p.safe?'已晉級':p.chips)).join(' ｜ ');
+  function startHand(){
+    handNo++;
+    const deck=shuffle(seq(40).map(i=>1+i%10));
+    pot=0;snipes=[];events=[];lastResult='';
+    for(const p of remaining()){
+      p.folded=false;p.cards=deck.splice(0,2);p.paid=0;
+      p.total=p.chips>0?1:0;p.chips-=p.total;pot+=p.total;
+      if(!p.total)p.folded=true;
+    }
+    shared=deck.splice(0,4);
+    openBet(0);
+    run();
+  }
+  function openBet(step){
+    stage=step;lead=0;
+    for(const p of live())p.paid=0;
+    pending=ordered(live(),dealer).map(p=>p.id);
+  }
+  function maxBet(){
+    return Math.min(...live().map(p=>p.paid+p.chips));
+  }
+  function bet(action,target=0){
+    const p=players[turn];
+    if(action==='fold')p.folded=true;
+    else{
+      const newAmount=action==='raise'?target:lead;
+      const added=newAmount-p.paid;
+      p.chips-=added;p.paid=newAmount;p.total+=added;pot+=added;
+      if(newAmount>lead){
+        lead=newAmount;
+        const nextId=(turn+1)%5;
+        pending=ordered(live().filter(other=>other.id!==turn),nextId).map(other=>other.id);
+      }
+    }
+    events.push(p.name+' '+(action==='fold'?'棄牌':action==='raise'?'下注至 '+lead:lead?'跟注':'過牌'));
+  }
+  function snipe(target){
+    const p=players[turn];
+    if(target)snipes.push(target.key);
+    events.push(p.name+' '+(target?'狙擊 '+label(target):'略過狙擊'));
+  }
+  function showdown(){
+    const active=ordered(live(),dealer);
+    let winners=active;
+    if(active.length>1){
+      const hands=active.map(p=>{
+        const value=sniperBest([...p.cards,...shared]);
+        return {p,value,hit:snipes.includes(value.key),hi:Math.max(...p.cards),sum:p.cards[0]+p.cards[1]};
+      });
+      const eligible=hands.filter(h=>!h.hit).sort((a,b)=>b.value.key-a.value.key||b.hi-a.hi||b.sum-a.sum);
+      const best=eligible[0];
+      if(best)winners=eligible.filter(h=>h.value.key===best.value.key&&h.hi===best.hi&&h.sum===best.sum).map(h=>h.p);
+      events.push(hands.map(h=>h.p.name+' ['+h.p.cards.join('、')+'] '+label(h.value)+(h.hit?'（被狙擊）':'')).join(' ｜ '));
+    }
+    winners=ordered(winners,dealer);
+    const share=Math.floor(pot/winners.length);
+    winners.forEach((p,i)=>p.chips+=share+Number(i<pot%winners.length));
+    lastResult=winners.map(p=>p.name).join('、')+' 獲派池內 '+pot+' 籌碼。';
+    stage=3;
+    distribute();
+  }
+  function distribute(){
+    while(remaining().length>1){
+      const p=ordered(remaining(),dealer).find(candidate=>candidate.chips>=75);
+      if(!p)break;
+      p.safe=true;p.chips-=75;
+      events.push(p.name+' 交回 75 籌碼，成功晉級。');
+      const others=remaining().slice().sort((a,b)=>a.chips-b.chips);
+      for(const recipient of others){
+        if(!recipient.chips&&p.chips){p.chips--;recipient.chips++;events.push(p.name+' 分 1 籌碼畀 '+recipient.name+'。')}
+      }
+      if(p.id===0&&p.chips){
+        stage=4;
+        renderGift(p);
+        return;
+      }
+      if(p.chips){
+        const recipient=others[0];
+        recipient.chips+=p.chips;
+        events.push(p.name+' 分 '+p.chips+' 籌碼畀 '+recipient.name+'。');
+        p.chips=0;
+      }
+    }
+    render();
+  }
+  function renderGift(p){
+    const board=gameTable('你已晉級 · 分派剩餘籌碼',totals());
+    tableText(board,'仲有 '+p.chips+' 籌碼可以分配。籌碼用完後完成結算。');
+    const row=tableActions(board);
+    const recipients=remaining();
+    const choice=tableSelect(row,'收取籌碼',recipients.map(other=>other.name));
+    const amount=tableSelect(row,'數量',seq(p.chips).map(i=>i+1),p.chips-1);
+    challengeButton(row,'分派',()=>{
+      const recipient=recipients[choice.selectedIndex],gift=amount.selectedIndex+1;
+      p.chips-=gift;recipient.chips+=gift;
+      events.push('你分 '+gift+' 籌碼畀 '+recipient.name+'。');
+      if(p.chips)renderGift(p);
+      else{stage=3;distribute()}
+    });
+  }
+  function botBet(){
+    const p=players[turn],cap=maxBet(),call=lead-p.paid;
+    const good=stage===1?sniperBest([...p.cards,...shared]).kind>=2:p.cards[0]===p.cards[1]||Math.max(...p.cards)>=8;
+    if(cap>lead&&Math.random()<(good?.55:.29)){
+      const inc=1+Math.floor(Math.random()*Math.min(cap-lead,handNo>15?15:6));
+      bet('raise',lead+inc);
+    }else if(call>0&&live().length>2&&p.chips>call&&Math.random()<(good?.07:.24))bet('fold');
+    else bet('call');
+  }
+  function botSnipe(){
+    const p=players[turn];
+    if(Math.random()<.27){snipe(null);return}
+    const known=[...p.cards,...shared],own=sniperBest(known);
+    const unseen=seq(40).map(i=>1+i%10);
+    known.forEach(n=>unseen.splice(unseen.indexOf(n),1));
+    const counts=new Map();
+    for(let i=0;i<unseen.length;i++)for(let j=i+1;j<unseen.length;j++){
+      const candidate=sniperBest([...shared,unseen[i],unseen[j]]);
+      if(candidate.key<=own.key||snipes.includes(candidate.key))continue;
+      const old=counts.get(candidate.key);
+      counts.set(candidate.key,{...candidate,count:(old?.count||0)+1});
+    }
+    snipe([...counts.values()].sort((a,b)=>b.count-a.count)[0]);
+  }
+  function run(){
+    while(stage<3){
+      if(live().length===1){showdown();return}
+      if(!pending.length){
+        if(stage===0)openBet(1);
+        else if(stage===1){stage=2;pending=ordered(live(),dealer).map(p=>p.id)}
+        else{showdown();return}
+        continue;
+      }
+      turn=pending.shift();
+      if(turn===0){render();return}
+      if(stage===2)botSnipe();
+      else botBet();
+    }
+  }
+  function render(){
+    const complete=stage===3&&remaining().length===1;
+    const board=gameTable(complete?(players[0].safe?'你已成功晉級':'你成為最後一位，出局'):'狙擊撲克 · 第 '+handNo+' 手',totals());
+    tableText(board,'公牌：'+shared.slice(0,stage===0?2:4).join('　')+'　｜　彩池 '+pot);
+    if(!players[0].safe&&!players[0].folded)tableText(board,'你嘅底牌：'+players[0].cards.join('　'));
+    if(lastResult)tableText(board,lastResult);
+    if(events.length){
+      const log=document.createElement('details');
+      tableText(log,'本手紀錄','summary');
+      events.forEach(event=>tableText(log,event));
+      board.append(log);
+      if(stage===3)log.open=true;
+    }
+    if(complete){tableRestart();return}
+    const row=tableActions(board);
+    if(stage===3){
+      challengeButton(row,'下一手',()=>{
+        dealer=ordered(remaining(),(dealer+1)%5)[0].id;
+        startHand();
+      });
+      return;
+    }
+    if(stage===2){
+      tableText(board,'你嘅最佳牌型：'+label(sniperBest([...players[0].cards,...shared])));
+      const kind=tableSelect(row,'狙擊牌型',sniperKinds);
+      const top=tableSelect(row,'牌型主點數',seq(10).map(i=>i+1));
+      challengeButton(row,'狙擊',()=>{
+        const k=kind.selectedIndex,n=top.selectedIndex+1;
+        snipe({kind:k,top:n,key:k*11+n});run();
+      });
+      challengeButton(row,'略過狙擊',()=>{snipe(null);run()});
+      return;
+    }
+    const call=lead-players[0].paid;
+    challengeButton(row,call?'跟注 '+call:'過牌',()=>{bet('call');run()});
+    challengeButton(row,'棄牌',()=>{bet('fold');run()});
+    const cap=maxBet();
+    if(cap>lead){
+      const amount=tableSelect(row,'下注至',seq(cap-lead).map(i=>i+lead+1));
+      challengeButton(row,lead?'加注':'下注',()=>{bet('raise',lead+1+amount.selectedIndex);run()});
+    }
+  }
+  const board=gameTable('狙擊撲克','五人局，你對四個電腦。每人 60 籌碼，交回 75 即晉級。兩輪下注後可以狙擊指定牌型同主點數。');
+  challengeButton(tableActions(board),'開始對戰',startHand);
+}
+
+function heavyOrder(entries,first,count){
+  return entries.slice().sort((a,b)=>Number(b.color===3)-Number(a.color===3)||b.weight-a.weight||
+    (a.player-first+count)%count-(b.player-first+count)%count);
+}
+function heavyPlace(scale,weight){
+  if(scale.reduce((sum,n)=>sum+n,0)+weight<13){scale.push(weight);return 0}
+  const penalty=scale.length;
+  scale.splice(0,scale.length,weight);
+  return penalty;
+}
+function sumThirteen(){
+  const players=['你','電腦一','電腦二','電腦三','電腦四','電腦五','電腦六'];
+  const colors=['紅','綠','藍','彩虹'];
+  const stock=()=>players.map(()=>({cards:seq(7),tokens:[2,2,2,1]}));
+  const scales=[[],[],[]],scores=players.map(()=>0),latest=players.map(()=>-1);
+  let inventory=stock(),roundNo=1,first=0,clock=0,queue=[],deferred=[],events=[],placingDeferred=false;
+  const weightAt=color=>scales[color].reduce((sum,n)=>sum+n,0);
+  function status(title){
+    const board=gameTable(title,'第 '+roundNo+'／14 輪 ｜ 首家 '+players[first]);
+    const strip=tableActions(board);
+    scales.forEach((scale,i)=>{
+      const item=tableText(strip,colors[i]+'磅 '+weightAt(i)+'／12　['+(scale.join('、')||'空')+']','strong');
+      item.className='heavy-scale';
+    });
+    tableText(board,players.map((name,i)=>name+' '+scores[i]+' 罰分').join(' ｜ '));
+    if(events.length){
+      const log=document.createElement('details');
+      log.open=true;
+      tableText(log,'本輪紀錄','summary');
+      events.forEach(event=>tableText(log,event));
+      board.append(log);
+    }
+    return board;
+  }
+  function choose(){
+    events=[];
+    const board=status('秘密揀牌');
+    tableText(board,'未用籌碼：'+colors.map((color,i)=>color+' '+inventory[0].tokens[i]).join('、'));
+    const row=tableActions(board);
+    const stock=inventory[0];
+    const available=seq(4).filter(i=>stock.tokens[i]);
+    const cards=tableSelect(row,'重量',stock.cards);
+    const tokens=tableSelect(row,'顏色籌碼',available.map(i=>colors[i]));
+    challengeButton(row,'鎖定牌同籌碼',()=>submit(stock.cards[cards.selectedIndex],available[tokens.selectedIndex]));
+  }
+  function penaltyRisk(color,weight){
+    return weightAt(color)+weight>=13?scales[color].length:0;
+  }
+  function botChoice(player){
+    const {cards,tokens}=inventory[player];
+    const options=seq(4).filter(c=>tokens[c]).flatMap(color=>cards.map(weight=>({player,color,weight})));
+    return options.map(entry=>{
+      const {color,weight}=entry;
+      const risk=color===3?Math.min(...seq(3).map(c=>penaltyRisk(c,weight))):penaltyRisk(color,weight);
+      return {entry,score:Math.random()*3-risk*1.5+weight*.1-(color===3?.45:0)};
+    }).sort((a,b)=>b.score-a.score)[0].entry;
+  }
+  function submit(weight,color){
+    const entries=[{player:0,weight,color},...players.slice(1).map((_,i)=>botChoice(i+1))];
+    for(const entry of entries){
+      const held=inventory[entry.player];
+      held.cards.splice(held.cards.indexOf(entry.weight),1);
+      held.tokens[entry.color]--;
+    }
+    queue=heavyOrder(entries,first,players.length);
+    deferred=[];placingDeferred=false;
+    events.push('全員開牌：'+queue.map(entry=>players[entry.player]+' '+colors[entry.color]+entry.weight).join(' ｜ '));
+    const board=status('公開重量同籌碼');
+    challengeButton(tableActions(board),'開始放石',advance);
+  }
+  function place(entry,color){
+    const {player,weight}=entry;
+    const penalty=heavyPlace(scales[color],weight);
+    scores[player]+=penalty;
+    if(penalty)latest[player]=++clock;
+    events.push(players[player]+' 放 '+weight+' 到'+colors[color]+'磅'+(penalty?'，超重，罰 '+penalty+' 分。':'。'));
+  }
+  function advance(){
+    while(queue.length||deferred.length&&!placingDeferred){
+      if(!queue.length){queue=deferred.reverse();deferred=[];placingDeferred=true}
+      const entry=queue.shift();
+      const {player,color,weight}=entry;
+      if(player===0){humanPlace(entry);return}
+      const target=color===3?seq(3).sort((a,b)=>penaltyRisk(a,weight)-penaltyRisk(b,weight)||weightAt(b)-weightAt(a))[0]:color;
+      if(!placingDeferred&&queue.length&&penaltyRisk(target,weight)>0){
+        deferred.push(entry);
+        events.push(players[player]+' 延後放石。');
+      }else place(entry,target);
+    }
+    endRound();
+  }
+  function humanPlace(entry){
+    const board=status('輪到你放石 · '+entry.weight+' 重量');
+    const row=tableActions(board);
+    for(const color of entry.color===3?seq(3):[entry.color]){
+      challengeButton(row,'放'+colors[color]+'磅',()=>{place(entry,color);advance()});
+    }
+    if(!placingDeferred)challengeButton(row,'延後放石',()=>{
+      deferred.push(entry);
+      events.push('你延後放石。');
+      advance();
+    });
+  }
+  function endRound(){
+    const final=roundNo===14;
+    const ranking=seq(players.length).sort((a,b)=>scores[a]-scores[b]||latest[a]-latest[b]||a-b);
+    const board=status(final?'比賽結束 · '+(ranking.slice(-2).includes(0)?'你出局':'你成功留低'):'本輪結算');
+    if(final){
+      ranking.forEach((id,i)=>tableText(board,(i+1)+'. '+players[id]+' · '+scores[id]+' 罰分'+(i>=players.length-2?'（出局）':'')));
+      tableRestart();
+    }else challengeButton(tableActions(board),'下一輪',()=>{
+      if(roundNo===7)inventory=stock();
+      if(clock)first=latest.indexOf(clock);
+      roundNo++;
+      choose();
+    });
+  }
+  const board=gameTable('Heavy 13','七人局，你對六個電腦。三個磅會保留累積重量，放到 13 或以上會受罰。14 輪後罰分最多嘅兩位出局。');
+  challengeButton(tableActions(board),'開始對戰',choose);
+}
+
 function knightTour(){
   const size=5,points=seq(size*size);
   const edges=points.map(i=>points.filter(j=>{
@@ -554,37 +1010,4 @@ function knightTour(){
   }
   render();
 }
-function sumThirteen(){
-  function answerCount(groups){
-    let count=0;
-    for(const a of groups[0])for(const b of groups[1])for(const c of groups[2])if(a+b+c===13)count++;
-    return count;
-  }
-  let groups=[[1,9,10],[3,10,11],[9,11,12]];
-  for(let attempt=0;attempt<200;attempt++){
-    const cards=shuffle(seq(12)).map(i=>i+1);
-    const trial=[cards.slice(0,3),cards.slice(3,6),cards.slice(6,9)];
-    if(answerCount(trial)===1){groups=trial;break}
-  }
-  const selected=[null,null,null],names=['琥珀','翡翠','深藍'];
-  let complete=false,checked=false;
-  function render(){
-    const board=$('board');board.innerHTML='';
-    groups.forEach((group,row)=>{
-      const strip=document.createElement('div');strip.className='sumStrip';
-      const name=document.createElement('strong');name.textContent=names[row];strip.append(name);
-      group.forEach(value=>{
-        const button=challengeButton(strip,String(value),()=>{selected[row]=selected[row]===value?null:value;checked=false;render()},!complete);
-        button.setAttribute('aria-pressed',String(selected[row]===value));
-        if(selected[row]===value)button.classList.add('challengeSelected');
-      });
-      board.append(strip);
-    });
-    const total=selected.reduce((a,b)=>a+(b??0),0);
-    challengeStatus(complete?'答啱！ '+selected.join(' + ')+' = 13。':checked?'呢組加埋係 '+total+'。再試另一組。':'目前總和 '+total+' ／ 13。',complete);
-    if(!complete)challengeButton($('controls'),'驗證組合',()=>{complete=total===13;checked=true;render()},selected.every(n=>n!==null));
-  }
-  render();
-}
-
 </script></html>
