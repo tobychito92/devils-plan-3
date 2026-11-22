@@ -168,6 +168,10 @@ window.openGameRoom = function openGameRoom(game) {
         lobby(showError(error));
         return;
       }
+      if (action === 'finish' && error.code === 'move') {
+        racing = false;
+        submitted = undefined;
+      }
       if (error.code === 'stale') {
         try {
           const latest = await send('state');
