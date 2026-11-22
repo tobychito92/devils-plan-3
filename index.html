@@ -24,6 +24,43 @@
 .match-actions label{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap;max-width:100%}
 .match-actions select{max-width:100%}.heavy-scale{padding:5px 8px;background:#fff8ea;border:1px solid #a99b85;border-radius:4px}
 #board details{margin:12px 0}#board details p{margin:6px 0}
+</style><style>
+.table-tray{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 14px}
+.table-caption{margin:10px 0 0;text-align:left;color:#694927;font-weight:700}
+.table-card,.table-stone,.table-chip{display:inline-grid;place-items:center;flex:none;font-weight:800;box-sizing:border-box}
+.table-card{position:relative;width:44px;height:58px;border:1px solid #d4b98f;border-radius:8px;background:linear-gradient(145deg,#fff9e9,#dfcba6);color:#251c22;font:bold 20px Georgia,serif;box-shadow:0 3px #9a7d56,0 5px 9px #0006}
+.table-card[data-face]::before,.table-card[data-face]::after{content:attr(data-face);position:absolute;left:4px;top:2px;font-size:10px}
+.table-card[data-face]::after{left:auto;top:auto;right:4px;bottom:2px;transform:rotate(180deg)}
+.table-card.is-red{color:#a62537}
+.table-card.is-hidden{background:repeating-linear-gradient(45deg,#342b55 0 4px,#56467b 4px 7px);color:#f7dfac;border:3px solid #c9a86a}
+.table-card.is-empty{background:#141520;color:#a7a2b2;border:1px dashed #746782;box-shadow:none}
+.table-control{display:grid;place-items:center;gap:5px;min-width:44px;min-height:44px}
+.table-control[aria-pressed=true]{outline:2px solid #a33d2a;outline-offset:2px}
+.table-control:focus-visible,.heavy-board button:focus-visible{outline:2px solid #235db0;outline-offset:3px}
+.table-card-pick{padding:0;background:none;border:0;border-radius:8px}
+.table-stone{width:38px;height:34px;border-radius:37% 43% 30% 36%;border:1px solid #d6cfc5;background:radial-gradient(ellipse at 30% 20%,#f2e9db,#a4988b 62%,#786e66);box-shadow:0 3px #584e46,0 4px 6px #0008;color:#231c1b}
+.table-chip{--ink:#c68a3c;--light:#f9dfa5;width:44px;height:44px;aspect-ratio:1;border-radius:50%;border:2px solid var(--light);background:var(--ink);color:white;box-shadow:0 3px #08070d,0 4px 8px #0009,inset 0 0 0 3px #0002;text-shadow:0 1px 3px black}
+.table-chip::before{content:'';grid-area:1/1;width:72%;aspect-ratio:1;border-radius:50%;border:2px dashed var(--light);box-sizing:border-box}
+.table-chip>span{grid-area:1/1;z-index:1}
+.table-chip[data-tone="0"],.heavy-pan[data-tone="0"]{--ink:#9e2e40;--light:#ffc0bd}
+.table-chip[data-tone="1"],.heavy-pan[data-tone="1"]{--ink:#246e54;--light:#a3eac8}
+.table-chip[data-tone="2"],.heavy-pan[data-tone="2"]{--ink:#255b9e;--light:#b3d8ff}
+.table-chip[data-tone="3"]{background:conic-gradient(#bb375d,#b56c29,#398052,#265995,#8750a0,#bb375d);--light:#ffedbd}
+.table-wallet{display:flex;align-items:center;gap:8px;padding:4px 8px 4px 4px;border-radius:999px;background:#161321;color:#eee5dc;font-size:13px}
+.table-wallet .table-chip{width:35px;height:35px;font-size:12px}
+.heavy-board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:10px 0 14px}
+.heavy-pan{display:grid;grid-template-rows:auto minmax(48px,auto) auto auto;gap:4px;min-width:0;padding:7px 3px;color:#fff;background:linear-gradient(150deg,#171724,#252239);border:1px solid var(--ink);border-radius:9px;text-align:center;align-content:end}
+.heavy-pan:is(button){border-color:var(--light);box-shadow:inset 0 0 0 1px var(--ink);cursor:pointer}
+.heavy-pan-title{color:var(--light);font-weight:800}
+.heavy-stones{display:flex;flex-wrap:wrap;gap:4px;align-content:end;align-items:end;justify-content:center}
+.heavy-stones .table-stone{width:26px;height:23px;font-size:12px}
+.heavy-bowl{height:11px;margin:0 4px;border-radius:2px 2px 50% 50%;background:linear-gradient(var(--light),var(--ink));box-shadow:0 2px 3px #0008}
+.heavy-gauge{justify-self:center;min-width:58px;padding:4px 5px;border:1px solid var(--ink);border-radius:4px;background:#110f19;color:var(--light);font-size:12px;font-variant-numeric:tabular-nums}
+.heavy-choices{margin:8px 0 15px}
+.heavy-choices .table-control{padding:4px 6px;font-size:12px}
+.heavy-choices button:disabled{opacity:.42}
+.heavy-score{display:flex;flex-wrap:wrap;gap:5px 12px;font-size:13px}
+@media(max-width:430px){.table-tray{gap:6px}.table-card{width:38px;height:51px}.heavy-board{gap:5px}.heavy-stones .table-stone{width:23px;height:21px}}
 </style><main><header><span>THE DEVIL’S PLAN</span><span>DEAD AGAIN</span></header><section id="home"><h1>魔鬼的計謀</h1><p>單人挑戰・本機對戰</p><div class="list" id="menu"></div><footer>非官方可玩版 · 題板重繪</footer></section><section id="play" hidden><button class="link" onclick="lobby()">‹ 所有遊戲</button><h2 id="title"></h2><p id="hint"></p><div class="panel" id="board"></div><div id="controls" class="bar"></div><div class="msg" id="msg" role="status"></div></section></main>
 <script>
 const $=s=>document.getElementById(s), games=[
@@ -438,6 +475,41 @@ function tableActions(parent){
   parent.append(row);
   return row;
 }
+function tableTray(parent,caption=''){
+  if(caption)tableText(parent,caption).className='table-caption';
+  const tray=tableText(parent,'','div');
+  tray.className='table-tray';
+  return tray;
+}
+function tableCard(parent,face,{hidden=false,empty=false}={}){
+  const card=tableText(parent,hidden?'◆':empty?'—':String(face),'span');
+  card.className='table-card'+(hidden?' is-hidden':empty?' is-empty':/[♥♦]/.test(face)?' is-red':'');
+  if(!hidden&&!empty)card.dataset.face=face;
+  else card.setAttribute('aria-label',hidden?'暗牌':'空牌位');
+  return card;
+}
+function tableChip(parent,count,tone,label=''){
+  const chip=tableText(parent,'','span');
+  chip.className='table-chip';
+  if(tone!==undefined)chip.dataset.tone=tone;
+  if(label)chip.setAttribute('aria-label',label);
+  tableText(chip,count,'span');
+  return chip;
+}
+function tableWallet(parent,name,count,tone){
+  const item=tableText(parent,'','span');
+  item.className='table-wallet';
+  tableChip(item,count,tone,count+' 枚籌碼');
+  tableText(item,name,'span');
+}
+function tablePieceButton(parent,label,action){
+  const button=tableText(parent,'','button');
+  button.type='button';
+  button.className='table-control';
+  button.setAttribute('aria-label',label);
+  button.onclick=action;
+  return button;
+}
 function tableSelect(parent,title,entries,selected=0){
   const label=document.createElement('label');
   label.append(title+' ');
@@ -465,7 +537,14 @@ function cardForecast(){
   const actor=()=>roundNo%2;
   const guesser=()=>1-actor();
   const name=i=>local?labels[i]:['你','電腦'][i];
-  const summary=()=>name(0)+' '+chips[0]+' 籌碼 ｜ '+name(1)+' '+chips[1]+' 籌碼';
+  function balances(board){
+    const tray=tableTray(board);
+    chips.forEach((count,i)=>tableWallet(tray,name(i),count,i+1));
+  }
+  function forecastCards(board,reveal=false){
+    tableCard(tableTray(board,'莊家牌'),face);
+    tableCard(tableTray(board,reveal?'玩家牌':'玩家暗牌'),reveal?hidden:null,{hidden:!reveal});
+  }
   function begin(){
     face=dealers[actor()].pop();
     if(local)tableHandoff(name(actor()),'今手由你睇莊家牌，再暗出一張。',chooseCard);
@@ -479,22 +558,30 @@ function cardForecast(){
     }
   }
   function chooseCard(){
-    const board=gameTable('第 '+(roundNo+1)+'／18 手 · 莊家 '+face,summary());
+    const board=gameTable('第 '+(roundNo+1)+'／18 手');
+    balances(board);
+    tableCard(tableTray(board,'莊家牌'),face);
     tableText(board,'揀一張暗牌。高過莊家就賺兩張牌嘅差額。');
-    const row=tableActions(board);
-    stock[actor()].forEach(card=>challengeButton(row,String(card),()=>{
-      hidden=card;
-      if(local)tableHandoff(name(guesser()),'對手已經落暗牌，輪到你押大小。',chooseBet);
-      else{
-        const unknown=stock[0];
-        const high=unknown.filter(n=>n>face).length;
-        const low=unknown.filter(n=>n<face).length;
-        settle(Math.random()<.75?(high>=low?1:-1):(high>=low?-1:1),Math.min(chips[1],1+Math.floor(Math.random()*3)));
-      }
-    }));
+    const row=tableTray(board,'你嘅手牌');
+    stock[actor()].forEach(card=>{
+      const button=tablePieceButton(row,'出 '+card,()=>{
+        hidden=card;
+        if(local)tableHandoff(name(guesser()),'對手已經落暗牌，輪到你押大小。',chooseBet);
+        else{
+          const unknown=stock[0];
+          const high=unknown.filter(n=>n>face).length;
+          const low=unknown.filter(n=>n<face).length;
+          settle(Math.random()<.75?(high>=low?1:-1):(high>=low?-1:1),Math.min(chips[1],1+Math.floor(Math.random()*3)));
+        }
+      });
+      button.classList.add('table-card-pick');
+      tableCard(button,card);
+    });
   }
   function chooseBet(){
-    const board=gameTable('第 '+(roundNo+1)+'／18 手 · 莊家 '+face,summary());
+    const board=gameTable('第 '+(roundNo+1)+'／18 手');
+    balances(board);
+    forecastCards(board);
     tableText(board,name(actor())+' 已出暗牌。對手尚有：'+stock[actor()].join('、'));
     const row=tableActions(board);
     const amount=tableSelect(row,'押注',seq(chips[guesser()]).map(i=>i+1));
@@ -511,7 +598,9 @@ function cardForecast(){
     roundNo++;
     const done=roundNo===18||chips.includes(0);
     const result=chips[0]===chips[1]?'和局':name(chips[0]>chips[1]?0:1)+' 勝出';
-    const board=gameTable(done?result:'第 '+roundNo+' 手結算',summary());
+    const board=gameTable(done?result:'第 '+roundNo+' 手結算');
+    balances(board);
+    forecastCards(board,true);
     tableText(board,last);
     if(done)tableRestart();
     else challengeButton(tableActions(board),'下一手',begin);
@@ -555,7 +644,8 @@ function signalQuestions(){
     const cards=secrets[p];
     function paint(){
       const board=gameTable(names[p]+' · 密排八張牌','同花色嘅牌要由左到右遞增。A 當 1，J、Q、K 當 11、12、13。');
-      tableText(board,cards.map(truthLabel).join('　')||'未揀牌');
+      const hand=tableTray(board,'你嘅牌序');
+      seq(8).forEach(i=>tableCard(hand,i<cards.length?truthLabel(cards[i]):'',{empty:i>=cards.length}));
       const row=tableActions(board);
       const options=seq(52).filter(card=>!cards.includes(card)&&!cards.some(c=>truthSuit(c)===truthSuit(card)&&truthValue(c)>truthValue(card)));
       const select=tableSelect(row,'選牌',options.map(truthLabel));
@@ -573,7 +663,8 @@ function signalQuestions(){
   }
   function bet(p){
     const other=1-p;
-    const board=gameTable(names[p]+' · 秘密投標','你有 '+chips[p]+' 枚代幣。'+(chips[other]<=5?'對手代幣警告燈亮起。':''));
+    const board=gameTable(names[p]+' · 秘密投標',chips[other]<=5?'對手代幣警告燈亮起。':'');
+    tableWallet(tableTray(board),names[p],chips[p],p+1);
     const row=tableActions(board);
     const amount=tableSelect(row,'投標',seq(chips[p]+1));
     challengeButton(row,'確認投標',()=>{
@@ -638,8 +729,12 @@ function signalQuestions(){
       if(inputs.some(input=>input.selectedIndex===0)){$('msg').textContent='請填齊八張牌。';return}
       $('msg').textContent='';
       const win=inputs.every((input,i)=>input.selectedIndex===truthValue(secrets[1-p][i]));
-      const board=gameTable(win?names[p]+' 勝出':'宣告未命中',win?'對手牌序：'+secrets[1-p].map(truthLabel).join('　'):'至少有一個位置未猜中，進入下一輪。');
-      if(win)tableRestart();
+      const board=gameTable(win?names[p]+' 勝出':'宣告未命中',win?'':'至少有一個位置未猜中，進入下一輪。');
+      if(win){
+        const reveal=tableTray(board,'對手牌序');
+        secrets[1-p].forEach(card=>tableCard(reveal,truthLabel(card)));
+        tableRestart();
+      }
       else challengeButton(tableActions(board),'下一輪',advance);
     });
     challengeButton(actions,'返回',()=>act(p));
@@ -810,9 +905,22 @@ function pokerExchange(){
   }
   function render(){
     const complete=stage===3&&remaining().length===1;
-    const board=gameTable(complete?(players[0].safe?'你已成功晉級':'你成為最後一位，出局'):'狙擊撲克 · 第 '+handNo+' 手',totals());
-    tableText(board,'公牌：'+shared.slice(0,stage===0?2:4).join('　')+'　｜　彩池 '+pot);
-    if(!players[0].safe&&!players[0].folded)tableText(board,'你嘅底牌：'+players[0].cards.join('　'));
+    const board=gameTable(complete?(players[0].safe?'你已成功晉級':'你成為最後一位，出局'):'狙擊撲克 · 第 '+handNo+' 手');
+    const stacks=tableTray(board);
+    players.forEach(p=>{
+      if(p.safe)tableText(stacks,p.name+' 已晉級','span').className='table-wallet';
+      else tableWallet(stacks,p.name,p.chips,p.id===0?1:undefined);
+    });
+    tableWallet(stacks,'彩池',pot,3);
+    const community=tableTray(board,'公牌');
+    shared.forEach((card,i)=>{
+      if(stage===0&&i>=2)tableCard(community,null,{hidden:true});
+      else tableCard(community,card);
+    });
+    if(!players[0].safe&&!players[0].folded){
+      const hand=tableTray(board,'你嘅底牌');
+      players[0].cards.forEach(card=>tableCard(hand,card));
+    }
     if(lastResult)tableText(board,lastResult);
     if(events.length){
       const log=document.createElement('details');
@@ -871,14 +979,31 @@ function sumThirteen(){
   const scales=[[],[],[]],scores=players.map(()=>0),latest=players.map(()=>-1);
   let inventory=stock(),roundNo=1,first=0,clock=0,queue=[],deferred=[],events=[],placingDeferred=false;
   const weightAt=color=>scales[color].reduce((sum,n)=>sum+n,0);
-  function status(title){
+  function stone(parent,weight){
+    const item=tableText(parent,weight,'span');
+    item.className='table-stone';
+  }
+  function status(title,targets=[],onPlace){
     const board=gameTable(title,'第 '+roundNo+'／14 輪 ｜ 首家 '+players[first]);
-    const strip=tableActions(board);
+    const strip=tableText(board,'','div');
+    strip.className='heavy-board';
     scales.forEach((scale,i)=>{
-      const item=tableText(strip,colors[i]+'磅 '+weightAt(i)+'／12　['+(scale.join('、')||'空')+']','strong');
-      item.className='heavy-scale';
+      const name=colors[i]+'磅';
+      const item=targets.includes(i)
+        ?tablePieceButton(strip,'放石到'+name+'，現重 '+weightAt(i),()=>onPlace(i))
+        :tableText(strip,'','div');
+      item.className='heavy-pan';
+      item.dataset.tone=i;
+      tableText(item,name,'span').className='heavy-pan-title';
+      const stones=tableText(item,'','span');
+      stones.className='heavy-stones';
+      scale.forEach(weight=>stone(stones,weight));
+      tableText(item,'','span').className='heavy-bowl';
+      tableText(item,weightAt(i)+'／12','span').className='heavy-gauge';
     });
-    tableText(board,players.map((name,i)=>name+' '+scores[i]+' 罰分').join(' ｜ '));
+    const score=tableText(board,'','div');
+    score.className='heavy-score';
+    players.forEach((name,i)=>tableText(score,name+' '+scores[i]+' 罰分','span'));
     if(events.length){
       const log=document.createElement('details');
       log.open=true;
@@ -891,13 +1016,31 @@ function sumThirteen(){
   function choose(){
     events=[];
     const board=status('秘密揀牌');
-    tableText(board,'未用籌碼：'+colors.map((color,i)=>color+' '+inventory[0].tokens[i]).join('、'));
-    const row=tableActions(board);
     const stock=inventory[0];
-    const available=seq(4).filter(i=>stock.tokens[i]);
-    const cards=tableSelect(row,'重量',stock.cards);
-    const tokens=tableSelect(row,'顏色籌碼',available.map(i=>colors[i]));
-    challengeButton(row,'鎖定牌同籌碼',()=>submit(stock.cards[cards.selectedIndex],available[tokens.selectedIndex]));
+    let weight, color;
+    function choices(title,entries,render,select){
+      const tray=tableTray(board,title);
+      tray.classList.add('heavy-choices');
+      const buttons=entries.map(({value,label,disabled})=>{
+        const button=tablePieceButton(tray,label,()=>{
+          buttons.forEach(item=>item.setAttribute('aria-pressed',String(item===button)));
+          select(value);
+          lock.disabled=weight===undefined||color===undefined;
+        });
+        button.setAttribute('aria-pressed','false');
+        button.disabled=!!disabled;
+        render(button,value);
+        return button;
+      });
+    }
+    choices('揀重量',stock.cards.map(value=>({value,label:'重量 '+value})),stone,value=>{weight=value});
+    choices('揀顏色籌碼',colors.map((label,value)=>({
+      value,label:label+'籌碼，剩 '+stock.tokens[value]+' 枚',disabled:!stock.tokens[value]
+    })),(button,value)=>{
+      tableChip(button,stock.tokens[value],value);
+      tableText(button,colors[value],'span');
+    },value=>{color=value});
+    const lock=challengeButton(tableActions(board),'鎖定重量同籌碼',()=>submit(weight,color),false);
   }
   function penaltyRisk(color,weight){
     return weightAt(color)+weight>=13?scales[color].length:0;
@@ -922,6 +1065,8 @@ function sumThirteen(){
     deferred=[];placingDeferred=false;
     events.push('全員開牌：'+queue.map(entry=>players[entry.player]+' '+colors[entry.color]+entry.weight).join(' ｜ '));
     const board=status('公開重量同籌碼');
+    const reveal=tableTray(board,'放石次序');
+    queue.forEach(entry=>tableWallet(reveal,players[entry.player],entry.weight,entry.color));
     challengeButton(tableActions(board),'開始放石',advance);
   }
   function place(entry,color){
@@ -946,11 +1091,12 @@ function sumThirteen(){
     endRound();
   }
   function humanPlace(entry){
-    const board=status('輪到你放石 · '+entry.weight+' 重量');
+    const targets=entry.color===3?seq(3):[entry.color];
+    const board=status('輪到你放石 · '+entry.weight+' 重量',targets,color=>{place(entry,color);advance()});
+    const item=tableTray(board,'撳亮邊嘅磅放石');
+    stone(item,entry.weight);
+    tableChip(item,'',entry.color,colors[entry.color]+'籌碼');
     const row=tableActions(board);
-    for(const color of entry.color===3?seq(3):[entry.color]){
-      challengeButton(row,'放'+colors[color]+'磅',()=>{place(entry,color);advance()});
-    }
     if(!placingDeferred)challengeButton(row,'延後放石',()=>{
       deferred.push(entry);
       events.push('你延後放石。');
