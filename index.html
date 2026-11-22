@@ -12,6 +12,12 @@
 .challengeGrid button:disabled{background:#29323a;color:#d3dbe0}.challengeGrid .challengeSelected{outline:3px solid #bc691b;outline-offset:-3px}
 .challengeCenter{text-align:center}.challengeCenter p,#board>p{color:#292523}.forecastCard{display:inline-grid;place-items:center;width:80px;height:110px;background:#fff9e8;border:1px solid #705946;border-radius:9px;font:700 42px Georgia;color:#8a3239}
 #play select{font:inherit;padding:7px;color:#1e2429;background:#f3ebdb;border-radius:4px}
+</style><style>
+.pointBoard{position:relative;aspect-ratio:1;max-width:480px;margin:auto;border-radius:6px;background:radial-gradient(at 30% 10%,#eaddc4,#c5aa83);box-shadow:inset 0 0 0 2px #846b49}
+.pointLine{position:absolute;height:2px;background:#74603e;transform-origin:0 center;pointer-events:none}
+.pointBoard .pointStone{position:absolute;width:clamp(29px,8.5%,43px);aspect-ratio:1;display:grid;place-items:center;padding:0;border-radius:50%;background:#4a3424;border:1px solid #312515;color:#fff1db;font-weight:bold;transform:translate(-50%,-50%)}
+.pointBoard .pointStone:disabled{background:#887354;border-color:#725e44;color:#fff5df}
+.pointBoard .challengeSelected{outline:3px solid #f4b43d;outline-offset:1px}
 </style><main><header><span>THE DEVIL’S PLAN</span><span>DEAD AGAIN</span></header><section id="home"><h1>魔鬼的計謀</h1><p>單人挑戰・本機對戰</p><div class="list" id="menu"></div><footer>非官方可玩版 · 題板重繪</footer></section><section id="play" hidden><button class="link" onclick="lobby()">‹ 所有遊戲</button><h2 id="title"></h2><p id="hint"></p><div class="panel" id="board"></div><div id="controls" class="bar"></div><div class="msg" id="msg" role="status"></div></section></main>
 <script>
 const $=s=>document.getElementById(s), games=[
@@ -21,11 +27,11 @@ const $=s=>document.getElementById(s), games=[
 [42,'秘密密碼','Secret Code','揀四張同時符合全部線索嘅牌，系統會按字母次序排列。'],
 [44,'環形圍欄','Loop Fence Puzzle','點兩個黑點之間嘅邊，依次切換線、交叉記號、留白。每格數字代表四邊嘅線數，所有線要連成一個圈。'],
 [48,'圍牆圍棋 II','Wall Go II','揀人數開局。方棋直行一至兩格；圓棋行一格後可以轉彎再行一格。行完直接撳棋格旁邊亮起嘅牆槽。領地分隔後計格數，同分鬥最大單幅領地。'],
-[13,'三連棋陣','Mill Court','本機雙人。每方五粒棋，先落子，再移去相鄰空格。橫直三連可以移除一粒對手棋。少過三粒或無棋可行就輸。'],
-[15,'迷霧四連','Fog Links','本機雙人。棋色平時隱藏，每六步揭示一次。橫、直或斜連四粒即勝。'],
-[28,'高低試算','Card Forecast','A 最細，K 最大。用遊戲點數押下一張牌高、低或同點。估中同點賺四倍押注，押高低遇同點退款。玩十二手。'],
-[29,'山脊撤離','Ridge Escape','本機雙人。群隊將四隻送到出口就贏，獵隊捕獲五隻就贏。棋子只行橫直一格，獵棋可跳過一隻群棋捕獲，岩石不可通過。'],
-[30,'代號問訊','Signal Questions','四格密碼由 A 至 F 組成，字母各不相同。用六條線索同四次提交機會推斷排列。']];
+[13,'九子棋','Nine Men’s Morris','本機雙人。每方九粒棋，輪流放滿後沿線移動。三粒成線可食一粒對手棋，優先食未成線嘅棋。剩三粒可以飛去任何空點，剩兩粒或無棋可行就輸。'],
+[15,'盲五子棋','Blind Gomoku','本機雙人。棋色平時隱藏，此版本每六步揭示一次。橫、直或斜連五粒即勝。'],
+[28,'猜大小','High or Low','A 最細，K 最大。用遊戲點數押下一張牌高、低或同點。估中同點賺四倍押注，押高低遇同點退款。玩十二手。'],
+[29,'虎羊棋','Bagh-Chal','本機雙人。四隻虎對二十隻羊，羊方先逐隻放棋，放完先可移動。虎沿線跳過一隻羊可以捕獲，捕五隻就贏。羊方困住四隻虎就贏。'],
+[30,'問題與真相','Question & Truth','自訂單人推理。四格密碼由 A 至 F 組成，字母各不相同。用六條問題同四次提交機會推斷排列。']];
 const letter=i=>String.fromCharCode(65+i), seq=n=>Array.from({length:n},(_,i)=>i);
 function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 let mode,round,timer,answer,check,finished,feedback;
@@ -255,44 +261,72 @@ function challengeGrid(size,content,active,select){
 function orthogonal(i,n){
   return [i%n>0?i-1:-1,i%n<n-1?i+1:-1,i-n,i+n].filter(j=>j>=0&&j<n*n);
 }
+function pointBoard(n,points,edges,content,active,select){
+  const board=document.createElement('div');
+  board.className='pointBoard';
+  const pos=i=>[7+86*(i%n)/(n-1),7+86*Math.floor(i/n)/(n-1)];
+  for(const [a,b] of edges){
+    const [x,y]=pos(a),[u,v]=pos(b);
+    const line=document.createElement('span');
+    line.className='pointLine';
+    Object.assign(line.style,{left:x+'%',top:y+'%',width:Math.hypot(u-x,v-y)+'%',transform:'rotate('+Math.atan2(v-y,u-x)+'rad)'});
+    board.append(line);
+  }
+  for(const i of points){
+    const button=challengeButton(board,content(i),()=>select(i),active(i));
+    button.className='pointStone';
+    const [x,y]=pos(i);
+    button.style.left=x+'%';
+    button.style.top=y+'%';
+    button.setAttribute('aria-label',String.fromCharCode(65+i%n)+(1+Math.floor(i/n))+' '+content(i));
+  }
+  $('board').replaceChildren(board);
+}
 function millCourt(){
-  const size=5,board=Array(25).fill(0),marks=['','●','◆'],stock=[0,5,5];
-  let turn=1,selected=-1,take=false,played=0,outcome='';
+  const size=7,board=Array(49).fill(0),marks=['','●','◆'],stock=[0,9,9];
+  const mills=[
+    [0,3,6],[8,10,12],[16,17,18],[21,22,23],[25,26,27],[30,31,32],[36,38,40],[42,45,48],
+    [0,21,42],[8,22,36],[16,23,30],[3,10,17],[31,38,45],[18,25,32],[12,26,40],[6,27,48]
+  ];
+  const points=[...new Set(mills.flat())].sort((a,b)=>a-b);
+  const edges=mills.flatMap(([a,b,c])=>[[a,b],[b,c]]);
+  let turn=1,selected=-1,take=false,outcome='',quiet=0,removed=false;
   const other=()=>3-turn;
-  const lineAt=i=>{
-    const r=Math.floor(i/size),c=i%size;
-    for(const [dr,dc] of [[1,0],[0,1]])for(const start of [-2,-1,0]){
-      if([0,1,2].every(k=>{
-        const row=r+dr*(start+k),col=c+dc*(start+k);
-        return row>=0&&row<size&&col>=0&&col<size&&board[row*size+col]===turn;
-      }))return true;
-    }
-    return false;
-  };
+  const placing=()=>stock[1]+stock[2]>0;
+  const inMill=(i,player)=>mills.some(line=>line.includes(i)&&line.every(j=>board[j]===player));
+  function destinations(i){
+    return points.filter(j=>!board[j]&&(board.filter(x=>x===turn).length===3||
+      edges.some(([a,b])=>a===i&&b===j||a===j&&b===i)));
+  }
   function advance(){
+    const wasPlacing=placing();
     selected=-1;take=false;turn=other();
-    const men=board.filter(x=>x===turn).length;
-    if(men+stock[turn]<3||!stock[turn]&&!board.some((v,i)=>v===turn&&orthogonal(i,size).some(j=>!board[j])))outcome=marks[other()]+' 勝出';
-    else if(++played>=80)outcome='80 回合完結。'+(board.filter(x=>x===1).length===board.filter(x=>x===2).length?'平手':(board.filter(x=>x===1).length>board.filter(x=>x===2).length?'●':'◆')+' 勝出');
-    render();
+    if(board.filter(x=>x===turn).length+stock[turn]<3||
+      !placing()&&!points.some(i=>board[i]===turn&&destinations(i).length))outcome=marks[other()]+' 勝出';
+    else if(!wasPlacing){
+      quiet=removed?0:quiet+1;
+      if(quiet>=100)outcome='連續 100 步無食子，和局';
+    }
+    removed=false;render();
   }
   function active(i){
     if(outcome)return false;
-    if(take)return board[i]===other();
-    if(stock[turn])return !board[i];
-    return board[i]===turn||!board[i]&&selected>=0&&orthogonal(selected,size).includes(i);
+    if(take)return board[i]===other()&&(!inMill(i,other())||
+      !points.some(j=>board[j]===other()&&!inMill(j,other())));
+    if(placing())return !board[i];
+    return board[i]===turn&&!!destinations(i).length||selected>=0&&destinations(selected).includes(i);
   }
   function play(i){
-    if(take){board[i]=0;advance();return}
+    if(take){board[i]=0;removed=true;advance();return}
     if(board[i]===turn){selected=selected===i?-1:i;render();return}
-    if(stock[turn])stock[turn]--;else board[selected]=0;
+    if(placing())stock[turn]--;else board[selected]=0;
     board[i]=turn;
-    if(lineAt(i)&&board.includes(other())){take=true;render()}else advance();
+    if(inMill(i,turn)&&board.includes(other())){take=true;render()}else advance();
   }
   function render(){
-    challengeGrid(size,i=>marks[board[i]],active,play);
-    if(selected>=0)$('board').firstChild.children[selected].classList.add('challengeSelected');
-    challengeStatus(outcome||marks[turn]+'　'+(take?'揀一粒對手棋移除':stock[turn]?'放棋（尚餘 '+stock[turn]+' 粒）':selected<0?'揀棋移動':'移去相鄰空格'),!!outcome);
+    pointBoard(size,points,edges,i=>marks[board[i]],active,play);
+    if(selected>=0)$('board').firstChild.querySelectorAll('button')[points.indexOf(selected)].classList.add('challengeSelected');
+    challengeStatus(outcome||marks[turn]+'　'+(take?'揀一粒對手棋移除':placing()?'放棋（尚餘 '+stock[turn]+' 粒）':selected<0?'揀棋移動':'揀空點'),!!outcome);
   }
   render();
 }
@@ -304,12 +338,12 @@ function fogLinks(){
     const r=(i/n)|0,c=i%n;
     for(const [dr,dc] of [[1,0],[0,1],[1,1],[1,-1]]){
       let chain=1;
-      for(const side of [-1,1])for(let d=1;d<4;d++){
+      for(const side of [-1,1])for(let d=1;d<5;d++){
         const row=r+dr*d*side,col=c+dc*d*side;
         if(row<0||row>=n||col<0||col>=n||board[row*n+col]!==turn)break;
         chain++;
       }
-      if(chain>=4){winner=turn;break}
+      if(chain>=5){winner=turn;break}
     }
     if(!winner&&moves<n*n){turn=3-turn;revealed=moves%6===0}
     render();
@@ -317,44 +351,61 @@ function fogLinks(){
   function render(){
     const done=!!winner||moves===n*n;
     challengeGrid(n,i=>done||revealed?marks[board[i]]:board[i]?'◉':'',i=>!done&&!revealed&&!board[i],play);
-    challengeStatus(done?(winner?marks[winner]+' 四連勝出':'滿盤平手'):revealed?'全盤揭示。記住棋子位置。':marks[turn]+' 落子　｜　第 '+(moves+1)+' 步',done);
+    challengeStatus(done?(winner?marks[winner]+' 五連勝出':'滿盤平手'):revealed?'全盤揭示。記住棋子位置。':marks[turn]+' 落子　｜　第 '+(moves+1)+' 步',done);
     if(revealed&&!done)challengeButton($('controls'),'收起棋色，繼續',()=>{revealed=false;render()});
   }
   render();
 }
 function ridgeEscape(){
-  const n=5,board=Array(25).fill(''),rocks=[7,17],exits=[0,4];
-  for(const i of rocks)board[i]='岩';
-  for(const i of [2,12])board[i]='獵';
-  for(const i of [10,14,15,16,18,19,20,21,22,23,24])board[i]='群';
-  let turn='群',selected=-1,escaped=0,caught=0,steps=0,outcome='';
+  const n=5,points=seq(25),board=Array(25).fill('');
+  const edges=[];
+  for(const i of points){
+    const row=Math.floor(i/n),col=i%n;
+    if(col<n-1)edges.push([i,i+1]);
+    if(row<n-1)edges.push([i,i+n]);
+    if(i%2===0&&row<n-1){
+      if(col>0)edges.push([i,i+n-1]);
+      if(col<n-1)edges.push([i,i+n+1]);
+    }
+  }
+  const connected=(i,j)=>edges.some(([a,b])=>i===a&&j===b||i===b&&j===a);
+  for(const i of [0,4,20,24])board[i]='虎';
+  let turn='羊',reserve=20,selected=-1,caught=0,outcome='',quiet=0;
   function options(i){
     const result=[];
-    for(const j of orthogonal(i,n)){
+    for(const j of points){
+      if(!connected(i,j))continue;
       if(!board[j])result.push({to:j,take:-1});
-      if(board[i]!=='獵'||board[j]!=='群')continue;
+      if(board[i]!=='虎'||board[j]!=='羊')continue;
       const row=2*Math.floor(j/n)-Math.floor(i/n),col=2*(j%n)-i%n;
-      if(row>=0&&row<n&&col>=0&&col<n&&!board[row*n+col])result.push({to:row*n+col,take:j});
+      if(row>=0&&row<n&&col>=0&&col<n&&!board[row*n+col]&&connected(j,row*n+col))result.push({to:row*n+col,take:j});
     }
     return result;
   }
   function play(i){
     if(board[i]===turn){selected=selected===i?-1:i;render();return}
-    const move=options(selected).find(x=>x.to===i);
-    board[selected]='';board[i]=turn;
-    if(move.take>=0){board[move.take]='';caught++}
-    if(turn==='群'&&exits.includes(i)){board[i]='';escaped++}
-    turn=turn==='群'?'獵':'群';selected=-1;steps++;
-    if(escaped>=4)outcome='群隊成功撤離，勝出';
-    else if(caught>=5)outcome='獵隊捕獲五隻，勝出';
-    else if(!board.some((v,j)=>v===turn&&options(j).length))outcome=(turn==='群'?'獵隊':'群隊')+'封鎖對手，勝出';
-    else if(steps>=60)outcome='60 回合完結，平手';
+    if(turn==='羊'&&reserve){board[i]='羊';reserve--;quiet=0}
+    else{
+      const move=options(selected).find(x=>x.to===i);
+      board[selected]='';board[i]=turn;
+      if(move.take>=0){board[move.take]='';caught++;quiet=0}else quiet++;
+    }
+    turn=turn==='羊'?'虎':'羊';selected=-1;
+    if(caught>=5)outcome='虎方捕獲五隻羊，勝出';
+    else if(turn==='虎'&&!board.some((v,j)=>v==='虎'&&options(j).length))outcome='羊方困住所有虎，勝出';
+    else if(turn==='羊'&&!reserve&&!board.some((v,j)=>v==='羊'&&options(j).length))outcome='羊方無棋可移動，和局';
+    else if(quiet>=100)outcome='連續 100 步無捕獲，和局';
     render();
   }
+  function canPlay(i){
+    if(outcome)return false;
+    if(turn==='羊'&&reserve)return !board[i];
+    return board[i]===turn&&options(i).length>0||selected>=0&&options(selected).some(x=>x.to===i);
+  }
   function render(){
-    challengeGrid(n,i=>board[i]||(exits.includes(i)?'出口':''),i=>!outcome&&(board[i]===turn&&options(i).length>0||selected>=0&&options(selected).some(x=>x.to===i)),play);
-    if(selected>=0)$('board').firstChild.children[selected].classList.add('challengeSelected');
-    challengeStatus(outcome||turn+'隊回合　｜　撤離 '+escaped+'/4　｜　捕獲 '+caught+'/5',!!outcome);
+    pointBoard(n,points,edges,i=>board[i],canPlay,play);
+    if(selected>=0)$('board').firstChild.querySelectorAll('button')[selected].classList.add('challengeSelected');
+    challengeStatus(outcome||turn+'方'+(turn==='羊'&&reserve?'放羊':'行棋')+'　｜　待放羊 '+reserve+'　｜　被捕 '+caught+'/5',!!outcome);
   }
   render();
 }
