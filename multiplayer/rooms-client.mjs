@@ -41,7 +41,7 @@ window.openGameRoom = function openGameRoom(game) {
   const {signal} = abort;
   const config = roomGames[game];
   const key = 'devils-plan.room.';
-  let code, token, snapshot, timer, waiting = false, racing = false, submitted, lastError = '';
+  let code, token, snapshot, timer, question, waiting = false, racing = false, submitted, lastError = '';
 
   signal.addEventListener('abort', () => clearTimeout(timer));
   status.hidden = false;
@@ -169,6 +169,7 @@ window.openGameRoom = function openGameRoom(game) {
         return;
       }
       if (action === 'finish' && error.code === 'move') {
+        window.stopRace();
         racing = false;
         submitted = undefined;
       }
@@ -190,14 +191,14 @@ window.openGameRoom = function openGameRoom(game) {
   function schedule() {
     clearTimeout(timer);
     if (signal.aborted || !snapshot || document.hidden || snapshot.screen?.ended) return;
-    if (snapshot.results && Object.keys(snapshot.results).length === snapshot.capacity) return;
+    const allDone = snapshot.results && Object.keys(snapshot.results).length === snapshot.capacity;
     if (snapshot.started > Date.now() && !racing) {
       timer = setTimeout(() => {render(); schedule()}, Math.min(1000, Math.max(50, snapshot.started - Date.now())));
     } else timer = setTimeout(() => {
       if (submitted !== undefined && snapshot.race && !snapshot.results?.[snapshot.seat]) {
-        request('finish', {proof: submitted});
+        request('finish', {question, proof: submitted});
       } else request();
-    }, 1800);
+    }, allDone ? 3500 : 1800);
   }
 
   function textStatus() {
@@ -206,13 +207,21 @@ window.openGameRoom = function openGameRoom(game) {
     text(status, snapshot.names.map((name,i) => (i + 1) + '. ' + name).join(' ｜ '));
     if (lastError) text(status, lastError);
     if (snapshot.race && snapshot.started) {
+      text(status, '第 ' + (snapshot.question || 1) + ' 題');
       const results = Object.entries(snapshot.results).sort(([, a], [, b]) => b.score - a.score || a.elapsed - b.elapsed);
       const allDone = results.length === snapshot.capacity;
       if (!results.length) return;
-      text(status, allDone ? '比賽結束' : game === 36 ? '暫時排名（牌力優先）' : '完成排名');
+      text(status, allDone ? '本題完成' : game === 36 ? '暫時排名（牌力優先）' : '完成排名');
       const list = document.createElement('ol');
       status.append(list);
       for (const [seat, result] of results) text(list, snapshot.names[seat] + ' · ' + (result.elapsed / 1000).toFixed(1) + ' 秒', 'li');
+      if (snapshot.seat === 0 && snapshot.results[0]) {
+        makeButton(status, '下一題', () => {
+          if (allDone || window.confirm('仲有人未完成，確定而家開下一題？')) request('next');
+        });
+      } else if (snapshot.results[snapshot.seat]) {
+        text(status, '等房主開下一題。');
+      }
     }
   }
 
@@ -244,6 +253,13 @@ window.openGameRoom = function openGameRoom(game) {
       return;
     }
     if (snapshot.race) {
+      const activeQuestion = snapshot.question || 1;
+      if (question !== activeQuestion) {
+        question = activeQuestion;
+        window.stopRace();
+        racing = false;
+        submitted = undefined;
+      }
       if (racing) return;
       reset();
       if (snapshot.started > Date.now()) {
@@ -255,9 +271,9 @@ window.openGameRoom = function openGameRoom(game) {
         return;
       }
       racing = true;
-      window.launchRace(game, seededRandom(snapshot.seed), proof => {
+      window.launchRace(game, question, seededRandom(snapshot.seed), proof => {
         submitted = proof;
-        request('finish', {proof});
+        request('finish', {question, proof});
       });
       return;
     }

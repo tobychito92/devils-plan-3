@@ -110,13 +110,13 @@ export function prepareGame(game, count, seed) {
   };
 }
 
-export function verifyRace(game, seed, proof) {
+export function verifyRace(game, seed, proof, question = 1) {
   const elements = new Map();
   const document = {getElementById(id) {
     if (!elements.has(id)) elements.set(id, new Element('div'));
     return elements.get(id);
   }};
   const online = {raceCheck: true, random: seededRandom(seed)};
-  runGame(document, online, game);
+  runGame(document, online, game, question);
   return online.verify(proof);
 }

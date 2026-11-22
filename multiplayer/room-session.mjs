@@ -9,7 +9,7 @@ export function newSession(body) {
   if (!hasGame(game) || !Number.isInteger(capacity)) return null;
   const config = roomGames[game];
   if (capacity < (config.min || config.size) || capacity > (config.max || config.size)) return null;
-  return {game, capacity, seed: crypto.getRandomValues(new Uint32Array(1))[0], started: 0, results: {}, actions: []};
+  return {game, capacity, seed: crypto.getRandomValues(new Uint32Array(1))[0], started: 0, question: 1, results: {}, actions: []};
 }
 
 export class Session {
@@ -31,7 +31,7 @@ export class Session {
     const race = Boolean(roomGames[game].race);
     return {
       game, capacity, started, race, seat, names: room.seats.map(player => player.name), version: room.version,
-      ...(started && race ? {seed, results} : {}),
+      ...(started && race ? {seed, results, question: room.session.question || 1} : {}),
       ...(started && !race ? {screen: this.engine(room).view(seat)} : {})
     };
   }
@@ -44,9 +44,20 @@ export class Session {
       return '';
     }
     if (!session.started || Date.now() < session.started) return 'waiting';
+    if (action === 'next' && roomGames[session.game].race) {
+      if (seat !== 0 || !Object.hasOwn(session.results, seat)) return 'waiting';
+      session.question = (session.question || 1) + 1;
+      const previous = session.seed;
+      do { session.seed = crypto.getRandomValues(new Uint32Array(1))[0]; } while (session.seed === previous);
+      session.results = {};
+      session.started = Date.now() + 4000;
+      return '';
+    }
     if (action === 'finish' && roomGames[session.game].race) {
+      const question = session.question || 1;
+      if ((body.question ?? 1) !== question) return 'stale';
       if (Object.hasOwn(session.results, seat)) return 'unchanged';
-      const score = verifyRace(session.game, session.seed, body.proof);
+      const score = verifyRace(session.game, session.seed, body.proof, question);
       if (score === null) return 'move';
       session.results[seat] = {elapsed: Date.now() - session.started, score};
       return '';

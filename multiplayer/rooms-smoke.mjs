@@ -73,23 +73,29 @@ for (const id of [13,15,21,28,30,37,48]) {
   console.log('PASS engine',id);
 }
 
-function answer(game,seed) {
+function answer(game,seed,question=1) {
   const random = seededRandom(seed);
   const range = n => Array.from({length:n},(_,i)=>i);
   if (game===36) return [0,1];
-  if (game===42) return [0,13,15,22];
+  if (game===42) {
+    if(question===1)return [0,13,15,22];
+    const cards=range(26);
+    for(let i=25;i>0;i--){const j=Math.floor(random()*(i+1));[cards[i],cards[j]]=[cards[j],cards[i]]}
+    return cards.slice(0,4).sort((a,b)=>a-b);
+  }
   if (game===34) {
-    const grid=[[1,8,6,null,7,3,1],[3,5,2,null,4,5,8],[7,4,9,21,9,2,6],[null,null,null,null,null,null,21],[null,null,null,null,9,4,7],[null,null,null,null,2,5,3],[null,null,null,null,6,8,1]];
+    const grid=question===1?[[1,8,6,null,7,3,1],[3,5,2,null,4,5,8],[7,4,9,21,9,2,6],[null,null,null,null,null,null,21],[null,null,null,null,9,4,7],[null,null,null,null,2,5,3],[null,null,null,null,6,8,1]]:range(5).map(()=>range(5).map(()=>1+Math.floor(random()*7)));
+    const n=grid.length,target=question===1?20:grid[0][0]+grid[0][1];
     let valid=0;
-    for(let y=0;y<7;y++)for(let x=0;x<7;x++)for(let b=y;b<7;b++)for(let r=x;r<7;r++){
+    for(let y=0;y<n;y++)for(let x=0;x<n;x++)for(let b=y;b<n;b++)for(let r=x;r<n;r++){
       const cells=grid.slice(y,b+1).flatMap(row=>row.slice(x,r+1));
-      if(cells.every(Number.isInteger)&&cells.reduce((a,b)=>a+b,0)===20) valid++;
+      if(cells.every(Number.isInteger)&&cells.reduce((a,b)=>a+b,0)===target) valid++;
     }
     return valid;
   }
   if(game===33){
-    const h=range(4).map(()=>[0,0,0,0]);
-    for(let x=3;x>=0;x--)for(let y=3;y>=0;y--){
+    const n=3+question%2,h=range(n).map(()=>Array(n).fill(0));
+    for(let x=n-1;x>=0;x--)for(let y=n-1;y>=0;y--){
       h[x][y]=Math.min(6,Math.max(h[x+1]?.[y]||1,h[x][y+1]||1)+Math.floor(random()*2));
     }
     return h.flat().reduce((a,b)=>a+b,0);
@@ -125,7 +131,8 @@ for(const [id,config] of Object.entries(roomGames)){
   const game=Number(id);
   assert.equal(verifyRace(game,242,[]),null);
   assert.notEqual(verifyRace(game,242,answer(game,242)),null,game+' proof');
-  console.log('PASS race validation',game);
+  assert.notEqual(verifyRace(game,999,answer(game,999,2),2),null,game+' second proof');
+  console.log('PASS race validation twice',game);
 }
 
 if (process.argv[2]) {
@@ -158,7 +165,19 @@ if (process.argv[2]) {
       await send('finish',0,{version:started.version,proof});
       const current=await send('state',1);
       await send('finish',1,{version:current.version,proof:game===36?[2,3]:proof});
-      assert((await send('state',0)).results[0].elapsed>=0);
+      const finished=await send('state',0);
+      assert(finished.results[0].elapsed>=0);
+      await send('next',1,{version:finished.version},409);
+      const next=await send('next',0,{version:finished.version});
+      assert.equal(next.question,2);
+      assert.notEqual(next.seed,started.seed);
+      assert.deepEqual(next.results,{});
+      assert.deepEqual(next.names,finished.names);
+      assert.equal((await send('state',1)).question,2);
+      await new Promise(resolve=>setTimeout(resolve, Math.max(3000, next.started-Date.now()+600)));
+      await send('finish',0,{version:next.version,question:1,proof},409);
+      const second=await send('finish',0,{version:next.version,question:2,proof:answer(game,next.seed,2)});
+      assert(second.results[0].elapsed>=0);
     } else {
       assert.equal(started.screen.turn,0);
       if ([21,28,30,37].includes(game)) assert.equal(guest.screen.board, undefined);

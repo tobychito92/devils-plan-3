@@ -83,11 +83,11 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(gameRandom()*
 let mode,round,timer,answer,check,finished,feedback,raceFinish,raceProof;
 const online=window.onlineGame||null;
 let gameRandom=online?.random||Math.random;
-function stopRace(){raceFinish=null;gameRandom=Math.random}
+function stopRace(){if(raceFinish)clearInterval(timer);raceFinish=null;gameRandom=Math.random}
 function onlineGameLabel(id){return games.find(game=>game[0]===id)?.[1]}
 function onlineGameView(id){clearInterval(timer);$('online-entry').hidden=true;mode=games.findIndex(game=>game[0]===id);$('home').hidden=true;$('play').hidden=false;$('title').textContent=games[mode][1];$('hint').textContent=games[mode][3]}
-function launchRace(id,random,finish){
-  stopRace();onlineGameView(id);round=1;finished=false;feedback='';raceProof=null;
+function launchRace(id,question,random,finish){
+  stopRace();onlineGameView(id);round=question;finished=false;feedback='';raceProof=null;
   raceFinish=finish;gameRandom=random;
   $('board').className='panel';$('controls').replaceChildren();$('msg').textContent='';
   ({31:knightTour,33:cube,34:rect,36:poker,42:code,44:fence})[id]();
@@ -1227,4 +1227,4 @@ function knightTour(){
   }
   render();
 }
-</script><script type="module" src="./multiplayer/client.mjs"></script><script type="module" src="./multiplayer/rooms-client.mjs?v=verified"></script></html>
+</script><script type="module" src="./multiplayer/client.mjs"></script><script type="module" src="./multiplayer/rooms-client.mjs?v=next-question"></script></html>

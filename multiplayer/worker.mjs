@@ -3,7 +3,7 @@ import {DurableObject} from 'cloudflare:workers';
 import {newGame, playMove, sheep, tiger} from './rules.mjs';
 
 const ttl = 24 * 60 * 60 * 1000;
-const roomRoute = /^\/api\/rooms\/([A-HJ-NP-Z2-9]{8})\/(create|join|state|move|start|act|finish)$/;
+const roomRoute = /^\/api\/rooms\/([A-HJ-NP-Z2-9]{8})\/(create|join|state|move|start|act|finish|next)$/;
 const json = (data, status = 200) => Response.json(data, {status, headers: {'Cache-Control': 'no-store'}});
 const fail = (error, status) => json({error}, status);
 const view = (room, seat) => json({state: room.state, names: room.seats.map(player => player.name), seat, version: room.version});
@@ -86,7 +86,7 @@ export class GameRoom extends DurableObject {
           if (body.version !== room.version) return fail('stale', 409);
           const error = this.sessions.apply(room, seat, action, body);
           if (error === 'unchanged') return this.view(room, seat);
-          if (error) return fail(error, error === 'waiting' ? 409 : 422);
+          if (error) return fail(error, ['waiting','stale'].includes(error) ? 409 : 422);
           room.version++;
           await this.save(room);
           return this.view(room, seat);
