@@ -1,0 +1,220 @@
+<!doctype html><html lang="zh-HK"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>魔鬼的計謀 · 六局試煉</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 82% 0%,#31282c,transparent 55%),#151619;color:#f3ecdf;font:16px/1.5 system-ui,sans-serif;min-height:100vh}main{max-width:780px;margin:auto;padding:24px 16px 56px}header{border-bottom:1px solid #77695c;padding:8px 0;display:flex;justify-content:space-between;color:#d8bea1;letter-spacing:.14em;font:13px Georgia}h1,h2{font-family:Georgia,'Songti TC',serif;line-height:1.12}h1{font-size:clamp(36px,7vw,68px);margin:35px 0 8px}h2{font-size:32px;margin:16px 0 6px}p{color:#c9c0b4;margin:8px 0 17px}.list{display:grid;gap:9px;margin-top:23px}button,input{font:inherit}button{cursor:pointer;background:#343033;color:#faf1df;border:1px solid #837569;border-radius:4px;padding:9px 14px;touch-action:manipulation}button:focus-visible,input:focus-visible{outline:3px solid #6dd1ea}.entry{display:grid;grid-template-columns:60px 1fr auto;text-align:left;align-items:center;background:linear-gradient(105deg,#302729,#242327);padding:15px}.entry b{font:28px Georgia;color:#d5a884}.entry strong{font-size:20px}.entry small{display:block;color:#c2aca0;font:12px Georgia;letter-spacing:.08em}.entry i{color:#d9b893}.panel{background:#ede9dd;color:#211f20;padding:clamp(12px,3vw,25px);border:3px double #a99b85;border-radius:3px}.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:15px}.bar strong{margin-right:auto}.primary{background:#803929;border-color:#ad6a50}.link{background:transparent;border:0;color:#dcc0a8;padding-left:0}input{width:105px;padding:9px}svg{width:100%;height:auto;display:block}.rect{display:grid;max-width:380px;margin:auto}.rect span{aspect-ratio:1;display:grid;place-items:center;font:bold clamp(15px,4vw,28px) Georgia;background:white;outline:1px solid #181818}.target{display:table;background:#065181;color:white;margin:0 auto 18px;padding:4px 16px;font:bold 22px Georgia}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:420px;margin:auto}.card,.token{font:bold 26px Georgia;background:#fcf5e5;color:#241f23;border:3px double #a99a80;padding:8px 2px}.red{color:#ad312c}.back{color:#f9e9c7;background:repeating-linear-gradient(45deg,#342733 0 3px,#493743 3px 5px)}button.sel{outline:3px solid #e67432;outline-offset:-3px;box-shadow:inset 0 0 0 3px #262221}.community{text-align:center;margin:12px 0;font:bold 23px Georgia}.codepanel{background:#353837;color:#eee}.clues{color:#a4f49f;margin:0 auto 16px;max-width:530px;padding-left:1.6rem;font-weight:600}.tokens{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;max-width:505px;margin:auto}.token{border:4px double #756455;border-radius:6px;line-height:1.15;font-size:clamp(16px,4.4vw,25px)}.token:nth-last-child(2){grid-column:5}.token small{font-size:.77em}.msg{min-height:28px;color:#f3c99c;font-weight:650;margin-top:12px}.fence{max-width:490px;margin:auto;touch-action:manipulation}[hidden]{display:none!important}button:disabled{cursor:default}footer{font-size:13px;color:#aaa097;margin-top:26px}
+.codepanel{background-image:linear-gradient(#1a1b1999,#26262199),url(data:image/jpeg;base64,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)} .clues{text-shadow:0 1px 3px #112211}</style>
+<style>.wgGrid{display:grid;grid-template-columns:repeat(7,1fr);max-width:435px;margin:auto;border:4px solid #524034;background:#514339}.wgGrid .wgCell{display:grid;place-items:center;aspect-ratio:1;min-width:0;padding:0;border:1px solid #b89f81;border-radius:0;background:#e0c39d;color:#2c5e64;font:bold 20px Georgia;opacity:1}.wgGrid .wgCell:nth-child(even){background:#d4b38e}.wgGrid .wgDest{background:#b2cebd}.wgCell.wgSel{outline:3px solid #205773;outline-offset:-5px}.wgPiece{width:60%;aspect-ratio:1;border-radius:18%;border:2px solid #0005;box-shadow:inset 0 2px 2px #fff8,0 2px 2px #0005}.wgRound{border-radius:100%}.wgP0{background:#28658a}.wgP1{background:#ce921b}.wgP2{background:#ab493e}.wgTop,.wgKey{text-align:center;padding:6px;font-weight:bold}.wgKey{font-size:13px}.wgGrid .wgLand0{background:#a7c8d8!important}.wgGrid .wgLand1{background:#e8ca89!important}.wgGrid .wgLand2{background:#dcaca0!important}</style><style>
+.wgSetup{text-align:center;padding:16px}.wgSetup strong,.wgSetup label{display:block}.wgSetup input{width:auto}.wgSetup button{margin:12px 3px}.wgGrid{position:relative;isolation:isolate;border:0;outline:6px ridge #755943;margin:8px auto 14px;background:#493a32;box-shadow:0 9px 15px #30201c66}
+.wgGrid .wgCell,.wgGrid .wgCell:nth-child(even){background:linear-gradient(150deg,#eee2c9,#d7c5a4);border:2px solid #6a5d4d;box-shadow:inset 1px 1px 0 #fff7,inset -1px -2px 0 #968875}.wgGrid .wgCell.wgDest{background:#b5cfc1}.wgPiece{border:1px solid #0005;box-shadow:inset 1px 2px 1px #fff7,inset -2px -3px 2px #0004,0 3px 3px #0005}.wgP0,.wgWall0{--tone:#215fbb}.wgP1,.wgWall1{--tone:#f1bc2b}.wgP2,.wgWall2{--tone:#bb353a}.wgP3,.wgWall3{--tone:#268367}.wgPiece{background:var(--tone)}.wgGrid .wgLand3{background:#9acca8!important}
+.wgGrid .wgEdge{position:absolute;transform:translate(-50%,-50%);display:grid;place-items:center;margin:0;border:0;padding:0;background:transparent;z-index:3}.wgHorizontal{width:11%;height:6%}.wgVertical{width:6%;height:11%}.wgEdge:after{content:'';display:block;box-sizing:border-box;border-radius:2px}.wgHorizontal:after{width:100%;height:6px}.wgVertical:after{width:6px;height:100%}.wgSolid{pointer-events:none}.wgSolid:after{background:var(--tone);border:1px solid #241a17;box-shadow:1px 2px 1px #0008}.wgBuild:after{background:#fff1a4;outline:2px solid #87520c;box-shadow:0 0 6px #fff}.wgBuild:hover:after,.wgBuild:focus-visible:after{background:white}.wgGrid .wgBuild{z-index:4}
+</style><main><header><span>THE DEVIL’S PLAN</span><span>DEAD AGAIN</span></header><section id="home"><h1>魔鬼的計謀</h1><p>第三季・單人挑戰</p><div class="list" id="menu"></div><footer>非官方可玩版 · 題板重繪</footer></section><section id="play" hidden><button class="link" onclick="lobby()">‹ 所有遊戲</button><h2 id="title"></h2><p id="hint"></p><div class="panel" id="board"></div><div id="controls" class="bar"></div><div class="msg" id="msg" role="status"></div></section></main>
+<script>
+const $=s=>document.getElementById(s), games=[
+[33,'數立方體','Count the Cubes','數出所有方塊，包括被遮住嘅底層。每條柱由地面疊起，中間冇空位。'],
+[34,'數長方形','Count the Rectangles','數出總和等於目標嘅長方形。正方形同單格都計，範圍唔可以跨過空位。'],
+[36,'記憶撲克','Memory Poker','記住 16 張牌嘅位置。20 秒後揭開三張公牌，揀兩個位置組成最強五張牌。'],
+[42,'秘密密碼','Secret Code','揀四張同時符合全部線索嘅牌，系統會按字母次序排列。'],
+[44,'環形圍欄','Loop Fence Puzzle','點兩個黑點之間嘅邊，依次切換線、交叉記號、留白。每格數字代表四邊嘅線數，所有線要連成一個圈。'],
+[48,'圍牆圍棋 II','Wall Go II','揀人數開局。方棋直行一至兩格；圓棋行一格後可以轉彎再行一格。行完直接撳棋格旁邊亮起嘅牆槽。領地分隔後計格數，同分鬥最大單幅領地。']];
+const letter=i=>String.fromCharCode(65+i), seq=n=>Array.from({length:n},(_,i)=>i);
+function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+let mode,round,timer,answer,check,finished,feedback;
+$('menu').innerHTML=games.map(([id,name,en],i)=>'<button class="entry" onclick="start('+i+')"><b>'+id+'</b><span><strong>'+name+'</strong><small>'+en+'</small></span><i>›</i></button>').join('');
+function lobby(){clearInterval(timer);$('home').hidden=false;$('play').hidden=true}
+function start(i){mode=i;round=0;$('home').hidden=true;$('play').hidden=false;next()}
+function next(){clearInterval(timer);round++;finished=false;feedback='';$('board').className='panel';$('title').textContent=games[mode][1];$('hint').textContent=games[mode][3];$('msg').textContent='';$('controls').innerHTML='';[cube,rect,poker,code,fence,wallGo][mode]()}
+function controls(html){$('controls').innerHTML=html+'<button class="primary" id="submit" onclick="judge()">提交答案</button><button class="link" onclick="next()">換題</button>'}
+function judge(){if(finished)return;let result=check();if(result===null)return;if(!result){$('msg').textContent=feedback||'未正確，可以再試。';return}finished=true;$('msg').textContent=feedback||'答啱！';$('controls').innerHTML='<button class="primary" onclick="next()">下一題 ›</button>'}
+function numeric(n){answer=n;controls('<label>數量 <input id="num" type="number" inputmode="numeric" min="0" step="1"></label>');$('num').onkeydown=e=>{if(e.key==='Enter')judge()};check=()=>$('num').value.trim()!==''&&Number($('num').value)===n}
+function cube(){let n=3+round%2,h=seq(n).map(()=>Array(n).fill(0)),total=0,polys='';for(let x=n-1;x>=0;x--)for(let y=n-1;y>=0;y--){h[x][y]=Math.min(6,Math.max(h[x+1]?.[y]||1,h[x][y+1]||1)+Math.floor(Math.random()*2))}
+function face(points,color){return '<polygon points="'+points+'" fill="'+color+'" stroke="#4a403a" stroke-width="1.4" stroke-linejoin="round"/>'}
+for(let d=0;d<2*n;d++)for(let x=0;x<n;x++){let y=d-x;if(y<0||y>=n)continue;total+=h[x][y];for(let z=0;z<h[x][y];z++){let a=(x-y)*25,b=(x+y)*13-z*26;let t=a+','+(b-26),r=(a+25)+','+(b-13),m=a+','+b,l=(a-25)+','+(b-13);polys+=face([l,m,a+','+(b+26),(a-25)+','+(b+13)].join(' '),'#aa937c')+face([m,r,(a+25)+','+(b+13),a+','+(b+26)].join(' '),'#77675c')+face([t,r,m,l].join(' '),'#e4d7c3')}}
+let top=-26*Math.max(...h.flat()),bottom=26*n;$('board').innerHTML='<svg aria-label="等角方塊圖" style="max-height:390px" viewBox="'+[-n*25-10,top-10,n*50+20,bottom-top+20].join(' ')+'">'+polys+'</svg>';numeric(total)}
+function rect(){let g=round===1?[[1,8,6,null,7,3,1],[3,5,2,null,4,5,8],[7,4,9,21,9,2,6],[null,null,null,null,null,null,21],[null,null,null,null,9,4,7],[null,null,null,null,2,5,3],[null,null,null,null,6,8,1]]:seq(5).map(()=>seq(5).map(()=>1+Math.floor(Math.random()*7)));let n=g.length,target=round===1?20:g[0][0]+g[0][1],count=0;for(let y=0;y<n;y++)for(let x=0;x<n;x++)for(let b=y;b<n;b++)for(let r=x;r<n;r++){let cells=g.slice(y,b+1).flatMap(row=>row.slice(x,r+1));if(!cells.includes(null)&&cells.reduce((a,b)=>a+b,0)===target)count++}
+$('board').innerHTML='<div class="target">TARGET · '+target+'</div><div class="rect" style="grid-template-columns:repeat('+n+',1fr)">'+g.flat().map(v=>v===null?'<i></i>':'<span>'+v+'</span>').join('')+'</div>';numeric(count)}
+const suits='♠♥♦♣',rank=c=>2+c%13, suit=c=>Math.floor(c/13), card=c=>'<span class="'+([1,2].includes(suit(c))?'red':'')+'">'+('23456789TJQKA'[c%13]).replace('T','10')+suits[suit(c)]+'</span>';
+function hand(cs){let rs=cs.map(rank).sort((a,b)=>b-a),groups=[...new Set(rs)].map(v=>[rs.filter(r=>r===v).length,v]).sort((a,b)=>b[0]-a[0]||b[1]-a[1]);let flush=cs.every(c=>suit(c)===suit(cs[0])),straight=groups.length===5?(rs[0]-rs[4]===4?rs[0]:rs.join()==='14,5,4,3,2'?5:0):0;
+let kind=flush&&straight?8:groups[0][0]===4?7:groups[0][0]===3&&groups[1][0]===2?6:flush?5:straight?4:groups[0][0]===3?3:groups[1][0]===2?2:groups[0][0]===2?1:0;
+let tie=straight?[straight]:groups.map(g=>g[1]);return [kind,...seq(5).map(i=>tie[i]||0)].reduce((a,b)=>a*15+b,0)}
+function poker(){let deck=shuffle(seq(52)),pool=deck.slice(0,16),community=deck.slice(16,19),sel=[],hidden=false,best=-1,pair,kind=['高牌','一對','兩對','三條','順子','同花','葫蘆','四條','同花順'];for(let i=0;i<15;i++)for(let j=i+1;j<16;j++){let v=hand([...community,pool[i],pool[j]]);if(v>best){best=v;pair=[i,j]}}
+function paint(show=false){$('board').innerHTML='<div class="cards">'+pool.map((c,i)=>'<button class="card '+(hidden&&!show?'back ':'')+(sel.includes(i)?'sel':'')+'" data-i="'+i+'">'+(hidden&&!show?letter(i):card(c))+'</button>').join('')+'</div>'+(hidden?'<div class="community">公牌　'+community.map(card).join('　')+'</div>':'');$('board').querySelectorAll('button').forEach((b,i)=>b.onclick=()=>{if(!hidden||finished)return;if(sel.includes(i))sel=sel.filter(j=>j!==i);else if(sel.length<2)sel.push(i);paint()})}
+function cover(){clearInterval(timer);hidden=true;paint();controls('<strong>選擇兩個位置</strong>');check=()=>{if(sel.length!==2){$('msg').textContent='請先揀兩個位置。';return null}let value=hand([...community,...sel.map(i=>pool[i])]);feedback=(value===best?'最佳組合！':'今次未達最佳。')+' 你揀到'+kind[Math.floor(value/15**5)]+'；最佳例子 '+pair.map(letter).join('、')+'（'+kind[Math.floor(best/15**5)]+'）。';paint(true);return true}}
+paint();$('controls').innerHTML='<strong id="clock">記憶時間　20 秒</strong><button id="cover">提早冚牌</button>';$('cover').onclick=cover;let end=Date.now()+20000;timer=setInterval(()=>{let s=Math.ceil((end-Date.now())/1000);if(s<=0)cover();else $('clock').textContent='記憶時間　'+s+' 秒'},150)}
+const palette=['#e4a7ec','#a9e3e3','#d2dfaa','#f4d466','#f3e6d7'],shapes=['●','▲','◆','★','■'],colors=[0,1,0,2,1,2,1,3,3,3,3,2,3,1,4,4,2,3,3,1,1,1,3,3,1,0],symbols=[0,1,1,2,3,0,1,2,3,4,1,1,4,0,4,4,0,1,4,4,2,0,0,2,3,2];
+function code(){let sel=[],target=round===1?[0,13,15,22]:shuffle(seq(26)).slice(0,4).sort((a,b)=>a-b),num=i=>i+1,distinct=(a,table)=>new Set(a.map(i=>table[i])).size,sum=a=>a.reduce((s,i)=>s+num(i),0),cs=distinct(target,colors),ss=distinct(target,symbols);
+let clues=['四張牌嘅數字總和係 '+sum(target),'一共用咗 '+cs+' 種顏色','一共用咗 '+ss+' 種圖形'];let extra;if(round===1){clues.push('第一同第四張嘅數字相乘 ≤ 50','最大同最細數字相加 ≥ 20','第三張屬於全副牌最少見嘅顏色');extra=a=>num(a[0])*num(a[3])<=50&&num(a[0])+num(a[3])>=20&&colors[a[2]]===4}else{clues.push('第四張減第二張等於 '+(target[3]-target[1]),'第一張嘅圖形係 '+shapes[symbols[target[0]]],'第三張嘅圖形係 '+shapes[symbols[target[2]]]);extra=a=>a[3]-a[1]===target[3]-target[1]&&symbols[a[0]]===symbols[target[0]]&&symbols[a[2]]===symbols[target[2]]}
+$('board').classList.add('codepanel');$('board').innerHTML='<ol class="clues">'+clues.map(s=>'<li>'+s+'</li>').join('')+'</ol><div class="tokens">'+seq(26).map(i=>'<button class="token" style="background:'+palette[colors[i]]+'">'+letter(i)+'<br>'+num(i)+'<br><small>'+shapes[symbols[i]]+'</small></button>').join('')+'</div>';controls('<strong id="selection">— — — —</strong>');$('board').querySelectorAll('button').forEach((b,i)=>b.onclick=()=>{if(finished)return;if(sel.includes(i))sel=sel.filter(v=>v!==i);else if(sel.length<4)sel.push(i);sel.sort((a,b)=>a-b);b.classList.toggle('sel',sel.includes(i));$('selection').textContent=sel.map(letter).join(' ')+' —'.repeat(4-sel.length)});check=()=>sel.length===4&&sum(sel)===sum(target)&&distinct(sel,colors)===cs&&distinct(sel,symbols)===ss&&extra(sel)}
+function fence(){let n=10,edges=[],lookup=new Map(),cells=[],history=[];let top=seq(n).map(()=>Math.floor(Math.random()*4)),bottom=seq(n).map(()=>6+Math.floor(Math.random()*4)),inside=(x,y)=>x>=0&&x<n&&y>=top[x]&&y<=bottom[x];function edge(x,y,v){let a=y*(n+1)+x,b=a+(v?n+1:1),real=v?inside(x-1,y)!==inside(x,y):inside(x,y-1)!==inside(x,y);lookup.set([x,y,v].join(),edges.length);edges.push({a,b,x,y,v,real,state:0})}
+for(let y=0;y<=n;y++)for(let x=0;x<=n;x++){if(x<n)edge(x,y,0);if(y<n)edge(x,y,1)}
+for(let y=0;y<n;y++)for(let x=0;x<n;x++){let ids=[[x,y,0],[x,y,1],[x+1,y,1],[x,y+1,0]].map(k=>lookup.get(k.join()));cells.push({x,y,ids,clue:Math.random()<.15?null:ids.filter(i=>edges[i].real).length})}
+function paint(){let graphic='';for(let c of cells)if(c.clue!==null)graphic+='<text x="'+(c.x+.5)+'" y="'+(c.y+.68)+'" text-anchor="middle" font-size=".53" font-family="Georgia" fill="#3c3230">'+c.clue+'</text>';
+for(let e of edges){let x2=e.x+(e.v?0:1),y2=e.y+(e.v?1:0);graphic+='<path d="M'+e.x+' '+e.y+'L'+x2+' '+y2+'" stroke="'+(e.state===1?'#844033':'#ccc4b2')+'" stroke-width="'+(e.state===1?'.12':'.025')+'"/>';if(e.state===2)graphic+='<text x="'+((e.x+x2)/2)+'" y="'+((e.y+y2)/2+.13)+'" text-anchor="middle" font-size=".45" fill="#8a7766">×</text>'}
+for(let y=0;y<=n;y++)for(let x=0;x<=n;x++)graphic+='<circle cx="'+x+'" cy="'+y+'" r=".07" fill="#342c27"/>';
+$('board').innerHTML='<svg class="fence" viewBox="-.45 -.45 10.9 10.9" aria-label="十乘十圍欄棋盤">'+graphic+'</svg>';let svg=$('board').firstChild;svg.onclick=ev=>{if(finished)return;let p=new DOMPoint(ev.clientX,ev.clientY).matrixTransform(svg.getScreenCTM().inverse());let mx=Math.round(p.x),my=Math.round(p.y),v=+(Math.abs(p.x-mx)<Math.abs(p.y-my)),id=lookup.get([v?mx:Math.floor(p.x),v?Math.floor(p.y):my,v].join());if(id===undefined)return;history.push(id);edges[id].state=(edges[id].state+1)%3;paint()}}
+paint();controls('<button id="undo">復原一步</button>');$('undo').onclick=()=>{let id=history.pop();if(id!==undefined){edges[id].state=(edges[id].state+2)%3;paint()}};check=()=>{if(cells.some(c=>c.clue!==null&&c.ids.filter(i=>edges[i].state===1).length!==c.clue)){feedback='仲有數字同四邊嘅線數未吻合。';return false}let graph=new Map();for(let e of edges.filter(e=>e.state===1))for(let [a,b] of [[e.a,e.b],[e.b,e.a]]){if(!graph.has(a))graph.set(a,[]);graph.get(a).push(b)}if(!graph.size||[...graph.values()].some(list=>list.length!==2)){feedback='檢查斷口同分叉，每個經過嘅點都要連兩條線。';return false}let visited=new Set(),stack=[graph.keys().next().value];while(stack.length){let a=stack.pop();if(!visited.has(a)){visited.add(a);stack.push(...graph.get(a))}}let valid=visited.size===graph.size;feedback=valid?'完成！所有提示吻合，而且只有一個閉環。':'而家有多過一個圈。';return valid}}
+function wallGo(){
+  $('board').innerHTML='<div class="wgSetup"><strong>對局人數</strong><div id="wgModes"></div><label><input type="checkbox" id="wgLocal"> 同一部機輪流玩</label></div>';
+  $('msg').textContent='單人玩時，其餘位置由電腦控制。';
+  for(const n of [2,3,4]){
+    const b=document.createElement('button');b.textContent=['二人決鬥','三人局','四人延伸局'][n-2];
+    b.onclick=()=>wallMatch(n,$('wgLocal').checked);$('wgModes').append(b);
+  }
+}
+function wallMatch(count,local){
+  const players=seq(count),colors=['藍','黃','紅','綠'];
+  const names=players.map(o=>(local?'玩家 '+(o+1):o?'電腦':'你')+'・'+colors[o]);
+  const duel=count===2;
+  $('hint').textContent=(duel?'二人決鬥。每方兩圓兩方，圓棋預置，輪流放方棋，全局不可拆牆。':(count===4?'四人延伸局。':'三人局。')+'每方一圓一方，每人有一次拆牆機會。')+' 方棋直行一至兩格，圓棋行一格後可以轉彎再行一格。行完直接撳亮起嘅牆槽。';
+  const N=7, cells=seq(49), dirs=['上','右','下','左'];
+  const neighbors=cells.map(i=>[i>=N?i-N:-1,i%N<6?i+1:-1,i<42?i+N:-1,i%N?i-1:-1]);
+  const key=(i,j)=>Math.min(i,j)*49+Math.max(i,j);
+  const walls=new Set(), pieces=[], breaker=players.map(()=>!duel), order=[...players,...players.slice().reverse()], wallOwner=new Map();
+  let turn=0, pick=-1, shape=0, pending=null, choices=[], phase='place', options=[], passes=0;
+  let placed=0;
+  if(duel)for(const [o,i] of [[0,8],[0,40],[1,12],[1,36]])pieces.push({i,o,s:1});
+  const at=i=>pieces.find(p=>p.i===i);
+  const coord=i=>'ABCDEFG'[i%N]+(1+Math.floor(i/N));
+  const token=p=>p.s?'圓':'方';
+  function moves(owner){
+    const result=[];
+    for(const p of pieces.filter(p=>p.o===owner)){
+      function step(i,d,broken,depth){
+        const j=neighbors[i][d];
+        if(j<0||at(j))return;
+        const edge=key(i,j);
+        if(walls.has(edge)){
+          if(!breaker[owner]||broken!==null)return;
+          broken=edge;
+        }
+        result.push({p,to:j,broken});
+        if(depth===1)for(const nd of p.s?[(d+1)%4,(d+3)%4]:[d])step(j,nd,broken,2);
+      }
+      dirs.forEach((_,d)=>step(p.i,d,null,1));
+    }
+    return result.filter((m,i)=>result.findIndex(n=>n.p===m.p&&n.to===m.to&&n.broken===m.broken)===i);
+  }
+  function areas(){
+    const seen=new Set(),points=Array(count).fill(0),largest=Array(count).fill(0),owner=[],mixedPieces=[];
+    for(const i of cells){
+      if(seen.has(i))continue;
+      const group=[i],inside=[];seen.add(i);
+      for(const j of group){
+        if(at(j))inside.push(at(j));
+        for(const k of neighbors[j])if(k>=0&&!seen.has(k)&&!walls.has(key(j,k))){seen.add(k);group.push(k)}
+      }
+      const teams=new Set(inside.map(p=>p.o));
+      if(teams.size>1)mixedPieces.push(...inside);
+      if(teams.size===1){
+        const o=inside[0].o;points[o]+=group.length;largest[o]=Math.max(largest[o],group.length);
+        group.forEach(k=>owner[k]=o);
+      }
+    }
+    return {points,largest,owner,mixedPieces};
+  }
+  function wallDirs(m){return neighbors[m.to].map((j,d)=>j>=0&&(!walls.has(key(m.to,j))||key(m.to,j)===m.broken)?d:-1).filter(d=>d>=0)}
+  function finish(a){
+    phase='end';
+    for(const p of a.mixedPieces){a.points[p.o]++;a.largest[p.o]=Math.max(1,a.largest[p.o]);a.owner[p.i]=p.o}
+    const rank=players.slice().sort((x,y)=>a.points[y]-a.points[x]||a.largest[y]-a.largest[x]);
+    const winners=rank.filter(x=>a.points[x]===a.points[rank[0]]&&a.largest[x]===a.largest[rank[0]]);
+    render(a.owner);$('msg').textContent=winners.map(i=>names[i]).join('、')+' 勝出！ '+rank.map(i=>names[i]+' '+a.points[i]+' 格（最大 '+a.largest[i]+'）').join(' ｜ ');
+  }
+  function commit(m,d){
+    if(m.broken!==null){walls.delete(m.broken);wallOwner.delete(m.broken);breaker[turn]=false}
+    m.p.i=m.to;const edge=key(m.to,neighbors[m.to][d]);walls.add(edge);wallOwner.set(edge,turn);passes=0;
+    pending=null;pick=-1;choices=[];turn=(turn+1)%count;advance();
+  }
+  function botMove(){
+    let best=-Infinity,choice;
+    for(const m of options){
+      const old=m.p.i; m.p.i=m.to;
+      for(const d of wallDirs(m)){
+        if(m.broken!==null)walls.delete(m.broken);
+        const e=key(m.to,neighbors[m.to][d]);walls.add(e);
+        const a=areas(),dist=players.slice().map(o=>{
+          const ds=Array(49).fill(99),q=pieces.filter(p=>p.o===o).map(p=>p.i);
+          q.forEach(i=>ds[i]=0);
+          for(const i of q)for(const j of neighbors[i])if(j>=0&&ds[j]===99&&!walls.has(key(i,j))){ds[j]=ds[i]+1;q.push(j)}
+          return ds;
+        });
+        const others=players.slice().filter(o=>o!==turn);
+        let v=2*a.points[turn]-Math.max(...others.map(o=>a.points[o]))-(m.broken!==null?2:0)+Math.random()*.35;
+        for(const i of cells)if(dist[turn][i]<Math.min(...others.map(o=>dist[o][i])))v++;
+        walls.delete(e);if(m.broken!==null)walls.add(m.broken);
+        if(v>best){best=v;choice=[m,d]}
+      }
+      m.p.i=old;
+    }
+    commit(...choice);
+  }
+  function place(i){
+    pieces.push({i,o:turn,s:shape});
+    if(++placed===order.length){turn=0;advance();return}
+    turn=order[placed];const first=pieces.find(p=>p.o===turn);shape=duel?0:first?1-first.s:0;
+    render();schedule();
+  }
+  function schedule(){
+    if(local||!turn||phase==='end')return;
+    timer=setTimeout(()=>{
+      if(phase==='place'){
+        const free=cells.filter(i=>!at(i));
+        if(!pieces.some(p=>p.o===turn))shape=+(Math.random()<.5);
+        const ranked=free.map(i=>[i,Math.random()*3+Math.min(4,...pieces.map(p=>Math.abs(i%7-p.i%7)+Math.abs((i/7|0)-(p.i/7|0))))]);
+        place(ranked.sort((a,b)=>b[1]-a[1])[0][0]);
+      }else botMove();
+    },350);
+  }
+  function advance(){
+    phase='move';const a=areas();if(!a.mixedPieces.length){finish(a);return}
+    options=moves(turn);
+    if(!options.length){if(++passes===count){finish(a);return}turn=(turn+1)%count;advance();return}
+    render();schedule();
+  }
+  function button(label,fn){const b=document.createElement('button');b.textContent=label;b.onclick=fn;$('controls').append(b)}
+  function render(territory=[]){
+    const placing=phase==='place',end=phase==='end',human=(local||turn===0)&&!end;
+    const own=options.filter(m=>m.p.i===pick);
+    $('board').innerHTML='<div class="wgTop">'+(end?'終局':names[turn]+(placing?'　佈棋':'　行棋'))+'</div><div class="wgGrid"></div><div class="wgKey">'+names.join('　')+'</div>';
+    const grid=$('board').querySelector('.wgGrid');
+    for(const i of cells){
+      const p=pending&&i===pending.to?pending.p:pending&&i===pending.p.i?null:at(i);
+      const b=document.createElement('button');b.className='wgCell';b.setAttribute('aria-label',coord(i)+(p?' '+names[p.o]+token(p)+'棋':''));
+      if(territory[i]!=null)b.classList.add('wgLand'+territory[i]);
+      if(p)b.innerHTML='<span class="wgPiece wgP'+p.o+(p.s?' wgRound':'')+'"></span>';
+      if(i===pick&&!pending||pending?.to===i)b.classList.add('wgSel');
+      if(human&&!pending&&!choices.length&&own.some(m=>m.to===i)){b.classList.add('wgDest');b.textContent=own.some(m=>m.to===i&&m.broken===null)?'•':'⚒'}
+      b.disabled=!human||(placing?!!p:!!pending||!!choices.length||!(p?.o===turn&&options.some(m=>m.p===p)||own.some(m=>m.to===i)));
+      b.onclick=()=>{
+        if(placing){place(i);return}
+        if(p){pick=p.i;render();return}
+        const routes=own.filter(m=>m.to===i);
+        if(routes.length===1)pending=routes[0];else choices=routes;
+        render();
+      };grid.append(b);
+    }
+    function edgeMarker(i,d,team,active){
+      const horizontal=d%2===0;
+      const el=document.createElement(active?'button':'span');
+      el.className='wgEdge '+(horizontal?'wgHorizontal':'wgVertical')+' '+(active?'wgBuild':'wgSolid wgWall'+team);
+      const x=i%7+(d===1?1:d===3?0:.5), y=Math.floor(i/7)+(d===2?1:d===0?0:.5);
+      el.style.left=(x*100/7)+'%';el.style.top=(y*100/7)+'%';
+      if(active){el.setAttribute('aria-label',coord(i)+' 築'+dirs[d]+'牆');el.onclick=()=>commit(pending,d)}
+      grid.append(el);
+    }
+    for(const [edge,o] of wallOwner){
+      if(edge===pending?.broken)continue;
+      const i=Math.floor(edge/49),j=edge%49;
+      edgeMarker(i,j===i+1?1:2,o,false);
+    }
+    if(human&&pending)wallDirs(pending).forEach(d=>edgeMarker(pending.to,d,turn,true));
+    $('controls').innerHTML='';
+    $('msg').textContent=end?'':!human?'電腦諗緊下一步…':placing?'點空格放低你嘅'+(shape?'圓':'方')+'棋。':pending?'直接撳棋子旁邊亮起嘅牆槽築牆。':choices.length?'揀移動路線。':pick<0?'點選你想移動嘅棋子。':'點亮起嘅格行棋。鎚仔代表要用一次拆牆。';
+    if(human&&placing&&!duel&&!pieces.some(p=>p.o===turn))button('改放'+(shape?'方':'圓')+'棋',()=>{shape=1-shape;render()});
+    if(human&&choices.length)choices.forEach(m=>button(m.broken===null?'沿通道行':'拆 '+coord(Math.floor(m.broken/49))+'–'+coord(m.broken%49)+' 之間嘅牆',()=>{pending=m;choices=[];render()}));
+
+    if(human&&(pending||choices.length))button('重新揀步',()=>{pending=null;choices=[];render()});
+    if(end){button('再玩一局',()=>wallMatch(count,local));button('揀對局人數',next)}
+  }
+  render();
+}
+
+</script></html>
