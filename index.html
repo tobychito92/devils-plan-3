@@ -61,7 +61,7 @@
 .heavy-choices button:disabled{opacity:.42}
 .heavy-score{display:flex;flex-wrap:wrap;gap:5px 12px;font-size:13px}
 @media(max-width:430px){.table-tray{gap:6px}.table-card{width:38px;height:51px}.heavy-board{gap:5px}.heavy-stones .table-stone{width:23px;height:21px}}
-</style><style>.online-room-info p{margin:3px 0;font-size:14px}.online-room-info{margin-bottom:12px}#board input{max-width:100%;width:132px}</style><link rel="stylesheet" href="./art/arena.css?v=3"><main><header><span>THE DEVIL’S PLAN</span><span>DEAD AGAIN</span></header><section id="home"><div class="arena-hero"><h1>魔鬼的計謀</h1><p>單人挑戰・本機對戰・網上開房</p></div><div class="list" id="menu"></div><footer>非官方可玩版 · 題板重繪</footer></section><section id="play" hidden><button class="link" onclick="lobby()">‹ 所有遊戲</button><h2 id="title"></h2><button id="online-entry" hidden>網上開房／加入</button><div id="room-status" role="status" hidden></div><p id="hint"></p><div class="panel" id="board"></div><div id="controls" class="bar"></div><div class="msg" id="msg" role="status"></div></section></main>
+</style><style>.online-room-info p{margin:3px 0;font-size:14px}.online-room-info{margin-bottom:12px}#board input{max-width:100%;width:132px}</style><link rel="stylesheet" href="./art/arena.css?v=exile"><main><header><span>THE DEVIL’S PLAN</span><span>DEAD AGAIN</span></header><section id="home"><div class="arena-hero"><h1>魔鬼的計謀</h1><p>單人挑戰・本機對戰・網上開房</p></div><div class="list" id="menu"></div><footer>非官方可玩版 · 題板重繪</footer></section><section id="play" hidden><button class="link" onclick="lobby()">‹ 所有遊戲</button><h2 id="title"></h2><button id="online-entry" hidden>網上開房／加入</button><div id="room-status" role="status" hidden></div><p id="hint"></p><div class="panel" id="board"></div><div id="controls" class="bar"></div><div class="msg" id="msg" role="status"></div></section></main>
 <script>
 const $=s=>document.getElementById(s), games=[
 [33,'數立方體','Count the Cubes','數出所有方塊，包括被遮住嘅底層。每條柱由地面疊起，中間冇空位。'],
@@ -78,25 +78,25 @@ const $=s=>document.getElementById(s), games=[
 [21,'狙擊撲克','Sniper Hold’em','兩輪下注後，可以狙擊指定牌型。最強未被狙擊嘅牌贏彩池，交回 75 籌碼晉級。'],
 [31,'騎士巡遊','Knight’s Tour','行日字步，走遍 5×5 棋盤，每格只可踏一次。㩒亮起嘅格移動，可以退步或睇提示。'],
 [37,'Heavy 13','Heavy 13','秘密揀重量同顏色籌碼。令任何一磅到 13 或以上就會受罰。14 輪後罰分最多嘅兩位出局。'],
-[40,'找不同','Spot the Difference','先記住 16 件道具嘅位置，棋盤換過之後，找出 4 格有變化嘅位置。'],
-[47,'對稱拼圖','Symmetry Puzzle','先揀棋子顏色，再填空格。每粒棋要同對稱軸另一邊嘅棋子一樣。']];
+[40,'找不同','Spot the Difference','先記住原相，再喺改動相上標記五處變化。每組三回合，每處答啱得一分。'],
+[47,'對稱拼圖','Symmetry Puzzle','用齊同色拼件砌成一個左右對稱嘅形狀。拼件可以旋轉，唔可以翻面。砌好藍、紅、綠三組先提交。']];
 const letter=i=>String.fromCharCode(65+i), seq=n=>Array.from({length:n},(_,i)=>i);
 function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(gameRandom()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-let mode,round,timer,answer,check,finished,feedback,raceFinish,raceProof;
+let mode,round,timer,answer,check,finished,feedback,raceFinish,raceProof,raceStarted=0,spotTotal=0;
 const online=window.onlineGame||null;
 let gameRandom=online?.random||Math.random;
-function stopRace(){if(raceFinish)clearInterval(timer);raceFinish=null;gameRandom=Math.random}
+function stopRace(){if(raceFinish)clearInterval(timer);raceFinish=null;raceStarted=0;gameRandom=Math.random}
 function onlineGameLabel(id){return games.find(game=>game[0]===id)?.[1]}
 function onlineGameView(id){$('play').dataset.game=id;clearInterval(timer);$('online-entry').hidden=true;mode=games.findIndex(game=>game[0]===id);$('home').hidden=true;$('play').hidden=false;$('title').textContent=games[mode][1];$('hint').textContent=games[mode][3]}
-function launchRace(id,question,random,finish){
+function launchRace(id,question,random,finish,startedAt){
   stopRace();onlineGameView(id);round=question;finished=false;feedback='';raceProof=null;
-  raceFinish=finish;gameRandom=random;
+  raceFinish=finish;raceStarted=startedAt;gameRandom=random;
   $('board').className='panel';$('controls').replaceChildren();$('msg').textContent='';
   ({31:knightTour,33:cube,34:rect,36:poker,40:spotDifference,42:code,44:fence,47:symmetryPuzzle})[id]();
 }
 $('menu').innerHTML=games.map(([id,name,en],i)=>({id,name,en,i})).sort((a,b)=>a.id-b.id).map(({id,name,en,i})=>'<button class="entry" onclick="start('+i+')"><img src="./art/game-'+id+'.webp" alt="" width="372" height="500" '+(id>28?'loading="lazy"':'')+'><b>'+id+'</b><span><strong>'+name+'</strong><small>'+en+'</small></span><i>›</i></button>').join('');
 function lobby(){stopRace();window.dispatchEvent(new Event('tiger-view-exit'));clearInterval(timer);$('home').hidden=false;$('play').hidden=true}
-function start(i){mode=i;round=0;$('home').hidden=true;$('play').hidden=false;next();window.scrollTo?.(0,0)}
+function start(i){if([40,47].includes(games[i][0])&&!window.exilePuzzles){import('./multiplayer/exile-puzzles.mjs').then(()=>start(i));return}mode=i;round=0;$('home').hidden=true;$('play').hidden=false;next();window.scrollTo?.(0,0)}
 function next(){if(raceFinish)return;window.dispatchEvent(new Event('tiger-view-exit'));clearInterval(timer);round++;finished=false;feedback='';$('play').dataset.game=games[mode][0];$('board').className='panel';$('title').textContent=games[mode][1];$('hint').textContent=games[mode][3];$('msg').textContent='';$('controls').innerHTML='';[cube,rect,poker,code,fence,wallGo,millCourt,fogLinks,cardForecast,ridgeEscape,signalQuestions,pokerExchange,knightTour,sumThirteen,spotDifference,symmetryPuzzle][mode]();
   const entry=$('online-entry');
   entry.hidden=!window.openGameRoom||games[mode][0]===29;
@@ -1256,35 +1256,39 @@ function puzzlePosition(index,size){
   return letter(index%size)+(1+Math.floor(index/size));
 }
 function spotDifference(){
-  const size=4, count=4;
-  const before=shuffle(seq(size*size));
-  const changes=shuffle(seq(before.length)).slice(0,count);
-  const after=before.slice();
-  for(const index of changes)after[index]=(before[index]+1+Math.floor(gameRandom()*(before.length-1)))%before.length;
-  const valid=proof=>validIndices(proof,count,before.length)&&proof.every(index=>changes.includes(index));
-  if(online?.raceCheck){online.verify=proof=>valid(proof)?0:null;return}
-
+  const {spotLayout,spotScore,spotCount,spotStudyMs,imageAnchors}=window.exilePuzzles;
+  const {before,after,changes}=spotLayout(gameRandom);
+  if(online?.raceCheck){online.verify=proof=>spotScore(changes,proof);return}
   const picked=new Set();
+  const roundInSet=1+(round-1)%3;
+  if(!raceFinish&&roundInSet===1)spotTotal=0;
   let comparing=false;
   function draw(values){
-    const grid=puzzleBoard(size,comparing?'改動後嘅棋盤':'原本棋盤');
-    $('board').replaceChildren(grid);
+    const scene=document.createElement('div');
+    scene.className='spot-scene';
+    scene.setAttribute('role','group');
+    scene.setAttribute('aria-label',comparing?'改動後嘅相':'原相');
+    $('board').replaceChildren(scene);
     values.forEach((value,index)=>{
-      const label=puzzlePosition(index,size)+' '+puzzlePieces[value];
-      const cell=document.createElement(comparing?'button':'div');
-      cell.className='puzzle-cell';
+      const [x,y]=imageAnchors[index];
+      const label='位置 '+(index+1)+' '+puzzlePieces[value];
+      const cell=document.createElement(comparing?'button':'span');
+      cell.className='spot-object';
+      cell.style.setProperty('--spot-x',x+'%');
+      cell.style.setProperty('--spot-y',y+'%');
       cell.setAttribute('aria-label',label);
+      if(!comparing)cell.setAttribute('role','img');
       puzzleIcon(cell,value);
-      grid.append(cell);
+      scene.append(cell);
       if(!comparing)return;
       cell.setAttribute('aria-pressed','false');
       cell.onclick=()=>{
         if(finished)return;
         if(picked.has(index))picked.delete(index);
-        else if(picked.size<count)picked.add(index);
-        else{$('msg').textContent='已揀 4 格。想改答案就先取消其中一格。';return}
+        else if(picked.size<spotCount)picked.add(index);
+        else{$('msg').textContent='已標記 5 處。可以撳多次取消標記。';return}
         cell.setAttribute('aria-pressed',String(picked.has(index)));
-        $('spot-count').textContent='已標記 '+picked.size+'／4 格';
+        $('spot-count').textContent='第 '+roundInSet+'／3 回合 · 已標記 '+picked.size+'／5';
         $('msg').textContent='';
       };
     });
@@ -1294,90 +1298,116 @@ function spotDifference(){
     clearInterval(timer);
     comparing=true;
     draw(after);
-    controls('<strong id="spot-count">已標記 0／4 格</strong>');
-    $('msg').textContent='揀出 4 格有變化嘅位置。';
+    controls('<strong id="spot-count">第 '+roundInSet+'／3 回合 · 已標記 0／5</strong>');
+    $('msg').textContent='喺相上標記五處變化。';
   }
   draw(before);
-  $('msg').textContent='記住 16 件道具嘅位置。';
-  $('controls').innerHTML='<strong id="spot-clock">記憶時間　15 秒</strong><button id="spot-skip">睇變化 ›</button>';
-  $('spot-skip').onclick=reveal;
-  const deadline=Date.now()+15000;
-  timer=setInterval(()=>{
+  $('msg').textContent='記住相入面嘅道具同位置。';
+  $('controls').innerHTML='<strong id="spot-clock"></strong>'+(raceFinish?'':'<button id="spot-skip">提早睇變化 ›</button>');
+  if(!raceFinish)$('spot-skip').onclick=reveal;
+  const deadline=(raceStarted||Date.now())+spotStudyMs;
+  function clock(){
     const seconds=Math.ceil((deadline-Date.now())/1000);
     if(seconds<=0){reveal();return}
-    $('spot-clock').textContent='記憶時間　'+seconds+' 秒';
-  },200);
+    $('spot-clock').textContent='第 '+roundInSet+'／3 回合 · 記憶時間 '+seconds+' 秒';
+  }
+  timer=setInterval(clock,200);
+  clock();
   check=()=>{
-    if(picked.size!==count){feedback='請標記 4 格先提交。';return false}
     raceProof=[...picked];
-    feedback=valid(raceProof)?'搵齊 4 處變化！':'有啲位置唔啱。可以取消已標記嘅格，再試一次。';
-    return valid(raceProof);
+    const points=spotScore(changes,raceProof);
+    if(points===null){feedback='請標記 5 處先提交。';return false}
+    if(!raceFinish)spotTotal+=points;
+    feedback='今輪 '+points+'／5'+(raceFinish?'':' · 三輪累計 '+spotTotal+'／15');
+    return true;
   };
 }
 function symmetryPuzzle(){
-  const size=6, axis=(round-1)%3;
-  const axisNames=['左右中線','上下中線','左上至右下對角線'];
-  const positions=seq(size*size);
-  const opposite=positions.map(index=>{
-    const x=index%size,y=Math.floor(index/size);
-    return axis===0?y*size+(size-1-x):axis===1?(size-1-y)*size+x:x*size+y;
-  });
-  const values=Array(positions.length).fill(0);
-  const editable=[];
-  for(const index of positions){
-    if(index>opposite[index])editable.push(index);
-    else values[index]=1+Math.floor(gameRandom()*4);
-  }
-  const solution=editable.map(index=>values[opposite[index]]);
-  const valid=proof=>Array.isArray(proof)&&proof.length===solution.length&&proof.every((value,i)=>value===solution[i]);
+  const {assemblyLayouts,assemblySize:size,assemblyColors,rotatedPiece,occupiedCells,isAssemblySolved}=window.exilePuzzles;
+  const sets=assemblyLayouts(gameRandom);
+  const valid=proof=>Array.isArray(proof)&&proof.length===sets.length&&sets.every(({pieces},i)=>isAssemblySolved(pieces,proof[i]));
   if(online?.raceCheck){online.verify=proof=>valid(proof)?0:null;return}
-
-  const grid=puzzleBoard(size,'對稱拼圖');
-  grid.dataset.axis=axis;
-  const missing=new Set(editable);
-  const tray=document.createElement('div');
-  tray.className='puzzle-palette';
-  $('board').replaceChildren(grid,tray);
-  let selected=1;
-  const tools=seq(5).map(value=>{
-    const label=value?puzzlePieces[value+3]:'擦除';
-    const button=challengeButton(tray,label,()=>{
-      if(finished)return;
-      selected=value;
-      tools.forEach((tool,i)=>tool.setAttribute('aria-pressed',String(i===selected)));
-    });
-    button.setAttribute('aria-pressed',String(value===selected));
-    if(value)puzzleIcon(button,value+3);
-    return button;
-  });
-  for(const index of positions){
-    const canEdit=missing.has(index);
-    const cell=document.createElement(canEdit?'button':'div');
-    cell.className='puzzle-cell';
-    cell.dataset.edit=canEdit;
-    if(index===opposite[index])cell.dataset.diagonal='true';
-    const setPiece=()=>{
-      const value=values[index];
-      cell.replaceChildren();
-      cell.setAttribute('aria-label',puzzlePosition(index,size)+' '+(value?puzzlePieces[value+3]:'空格')+(canEdit?'':'，提示'));
-      if(value)puzzleIcon(cell,value+3);
-      else cell.textContent='·';
-    };
-    setPiece();
-    grid.append(cell);
-    if(canEdit)cell.onclick=()=>{
-      if(finished)return;
-      values[index]=selected;
-      setPiece();
-      $('msg').textContent='對稱軸：'+axisNames[axis]+'。';
-    };
+  const placements=sets.map(({pieces})=>pieces.map(()=>null));
+  const turns=sets.map(({pieces})=>pieces.map(()=>0));
+  let set=0,selected=0;
+  function tile(parent,i){
+    const block=document.createElement('span');
+    block.className='assembly-tile';
+    block.dataset.pieceNumber=i;
+    parent.append(block);
   }
-  controls('<strong>對稱軸：'+axisNames[axis]+'</strong>');
+  function draw(){
+    const parts=sets[set].pieces;
+    const placed=placements[set];
+    const occupied=occupiedCells(parts,placed);
+    const children=document.createElement('div');
+    children.className='assembly-work';
+    children.dataset.set=set;
+    const tabs=document.createElement('div');
+    tabs.className='puzzle-palette';
+    children.append(tabs);
+    assemblyColors.forEach((label,i)=>{
+      const done=isAssemblySolved(sets[i].pieces,placements[i]);
+      const button=challengeButton(tabs,label+(done?' ✓':''),()=>{set=i;selected=0;draw()});
+      button.setAttribute('aria-pressed',String(i===set));
+    });
+    const grid=puzzleBoard(size,assemblyColors[set]+'拼件工作枱');
+    children.append(grid);
+    for(const index of seq(size*size)){
+      const x=index%size,y=Math.floor(index/size);
+      const owner=occupied.get(index);
+      const cell=challengeButton(grid,'',()=>{
+        if(finished)return;
+        if(owner!==undefined){
+          selected=owner;placed[owner]=null;draw();
+          return;
+        }
+        const next=[...placed];
+        next[selected]=[x,y,turns[set][selected]];
+        if(!occupiedCells(parts,next)){$('msg').textContent='拼件會疊住或者超出工作枱。試另一格。';return}
+        placed[selected]=next[selected];
+        const unplaced=placed.indexOf(null);
+        if(unplaced!==-1)selected=unplaced;
+        draw();
+      },!finished);
+      cell.className='puzzle-cell';
+      cell.setAttribute('aria-label',puzzlePosition(index,size)+(owner===undefined?' 放拼件':' 拎起拼件 '+(owner+1)));
+      if(owner!==undefined)tile(cell,owner);
+    }
+    const tray=document.createElement('div');
+    tray.className='puzzle-palette assembly-pieces';
+    children.append(tray);
+    parts.forEach((piece,i)=>{
+      const button=challengeButton(tray,'第 '+(i+1)+' 塊',()=>{selected=i;draw()},!finished);
+      button.setAttribute('aria-pressed',String(i===selected));
+      const preview=document.createElement('span');
+      preview.className='assembly-preview';
+      preview.setAttribute('aria-hidden','true');
+      for(const [x,y] of rotatedPiece(piece,turns[set][i])){
+        tile(preview,i);
+        preview.lastChild.style.gridColumn=x+1;
+        preview.lastChild.style.gridRow=y+1;
+      }
+      button.append(preview);
+    });
+    challengeButton(tray,'轉 90°',()=>{
+      if(placed[selected]!==null)placed[selected]=null;
+      turns[set][selected]=(turns[set][selected]+1)%4;
+      draw();
+    },!finished);
+    challengeButton(tray,'清空呢組',()=>{placed.fill(null);draw()},!finished);
+    $('board').replaceChildren(children);
+    const count=sets.filter(({pieces},i)=>isAssemblySolved(pieces,placements[i])).length;
+    controls('<strong>已砌好 '+count+'／3 組</strong>');
+    $('submit').disabled=count!==3;
+    $('msg').textContent=count===3?'三組都砌好，可以提交。':'揀拼件，再撳工作枱放低。撳已放好嘅拼件可以拎起。';
+  }
   check=()=>{
-    raceProof=editable.map(index=>values[index]);
-    const complete=!raceProof.includes(0);
-    feedback=!complete?'仲有格未填。':valid(raceProof)?'全部棋子都對稱！':'有棋子同對面唔一致，再對一對中線。';
-    return complete&&valid(raceProof);
+    raceProof=placements;
+    const correct=valid(raceProof);
+    feedback=correct?'三組都砌成左右對稱！':'每組都要用齊拼件，砌成一個連住嘅左右對稱形狀。';
+    return correct;
   };
+  draw();
 }
-</script><script type="module" src="./multiplayer/client.mjs"></script><script type="module" src="./multiplayer/rooms-client.mjs?v=two-puzzles"></script></html>
+</script><script type="module" src="./multiplayer/exile-puzzles.mjs"></script><script type="module" src="./multiplayer/client.mjs"></script><script type="module" src="./multiplayer/rooms-client.mjs?v=exile"></script></html>
