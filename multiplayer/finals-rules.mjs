@@ -14,7 +14,7 @@ const regions = new Intl.DisplayNames(['en'],{type:'region',fallback:'none'});
 for(const a of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')for(const b of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'){
   const name=regions.of(a+b);if(name)dict[0].add(name.toUpperCase().replace(/[^A-Z]/g,''));
 }
-export const themes=['國家','水果','動物'];
+export const themes=['國家','水果','動物','蔬菜','顏色','交通工具','樂器','運動','衣物'];
 const alphabet='ABCDEFGHIJKLMNOPQRS';
 const cells=[];
 for(let r=-2;r<=2;r++)for(let q=Math.max(-2,-r-2);q<=Math.min(2,2-r);q++)cells.push([q,r]);
@@ -27,9 +27,18 @@ for(const [q,r] of cells)for(const [x,y] of [[1,0],[0,1],[-1,1]]){
 const wordPools = [
   'INDIA JAPAN BRAZIL QATAR CANADA SPAIN FINLAND IRAN LAOS PERU CHINA VIETNAM PORTUGAL KENYA GHANA EGYPT CHILE SAMOA MALTA NEPAL BHUTAN TURKEY SWEDEN NORWAY ICELAND GREECE POLAND ITALY CUBA MEXICO OMAN TOGO BENIN GABON CHAD GERMANY FRANCE JORDAN TUNISIA UGANDA',
   'CHERRY DURIAN GRAPE AVOCADO PEAR KIWI COCONUT APPLE APRICOT BANANA DATE FIG GUAVA LEMON LIME LYCHEE MANGO MELON ORANGE PAPAYA PEACH PLUM POMELO QUINCE YUZU RAISIN OLIVE',
-  'WOLF ZEBRA GIRAFFE PENGUIN FOX BUTTERFLY PIG APE ANT BAT BEE BEAR BOAR CAT COW DOG EEL ELK EMU FLY GOAT HARE IBEX KOALA LION LYNX MOLE MOTH NEWT OWL PANDA PONY PUMA SEAL SWAN TOAD TURTLE YAK'
+  'WOLF ZEBRA GIRAFFE PENGUIN FOX BUTTERFLY PIG APE ANT BAT BEE BEAR BOAR CAT COW DOG EEL ELK EMU FLY GOAT HARE IBEX KOALA LION LYNX MOLE MOTH NEWT OWL PANDA PONY PUMA SEAL SWAN TOAD TURTLE YAK',
+  'CARROT POTATO SPINACH CABBAGE LETTUCE ONION GARLIC CELERY BROCCOLI CAULIFLOWER KALE OKRA TURNIP RADISH BEET LEEK ASPARAGUS CUCUMBER ZUCCHINI EGGPLANT PUMPKIN PARSNIP ARTICHOKE CHARD FENNEL RUTABAGA',
+  'RED BLUE GREEN YELLOW ORANGE PURPLE PINK BLACK WHITE BROWN GREY BEIGE GOLD SILVER VIOLET TEAL CYAN MAGENTA NAVY MAROON OLIVE LIME CORAL INDIGO TURQUOISE LAVENDER CRIMSON SCARLET AMBER OCHRE IVORY',
+  'CAR BUS TAXI TRAM TRAIN TRUCK VAN SCOOTER BICYCLE MOTORCYCLE FERRY BOAT CANOE KAYAK YACHT SHIP SUBMARINE HELICOPTER AIRPLANE GLIDER SLED SKATEBOARD TRACTOR RICKSHAW MONORAIL HOVERCRAFT',
+  'PIANO VIOLIN VIOLA CELLO HARP GUITAR BANJO LUTE MANDOLIN UKULELE FLUTE PICCOLO OBOE CLARINET BASSOON SAXOPHONE TRUMPET TROMBONE TUBA HARMONICA ACCORDION ORGAN DRUM CYMBAL GONG TAMBOURINE XYLOPHONE MARIMBA',
+  'TENNIS FOOTBALL SOCCER BASEBALL BASKETBALL VOLLEYBALL HANDBALL BADMINTON SQUASH RUGBY CRICKET HOCKEY GOLF BOXING JUDO KARATE ARCHERY SWIMMING DIVING ROWING CYCLING SKIING FENCING WRESTLING GYMNASTICS CURLING SURFING',
+  'SHIRT BLOUSE SWEATER JACKET COAT VEST JEANS TROUSERS SHORTS SKIRT DRESS SUIT GOWN ROBE CAPE SCARF GLOVE SOCK HAT CAP TIE BELT HOODIE CARDIGAN BLAZER LEGGINGS TUNIC APRON'
 ].map(pool=>pool.split(' '));
-wordPools.forEach((pool,index)=>pool.forEach(word=>dict[index].add(word)));
+wordPools.forEach((pool,index)=>{
+  dict[index]??=new Set();
+  for(const word of pool)dict[index].add(word);
+});
 
 function shuffled(values, random){
   const result=values.slice();
@@ -52,13 +61,20 @@ function randomHexagon(random){
   return [...board,choices[Math.floor(random()*choices.length)]];
 }
 
+function chooseThemes(random,previous){
+  const order=shuffled(themes.map((_,i)=>i),random);
+  if(order[0]===previous)[order[0],order[1]]=[order[1],order[0]];
+  return order.slice(0,3);
+}
+
 function startRound(s,now,random=Math.random){
   s.note='';s.round++;
   if(s.game===6){
     s.phase='build';s.end=now+600000;s.towers=Array(7).fill('');
     const theme=s.order?.[s.round-1]??s.round-1;
-    const selected=s.order?shuffled(wordPools[theme],random).slice(0,7):words[theme].split(' ');
-    s.bank=[...selected.join('')].sort().join('');
+    s.solution=s.order?shuffled(wordPools[theme],random).slice(0,7):words[theme].split(' ');
+    s.bank=[...s.solution.join('')].sort().join('');
+    s.revealed=false;
   }else{
     const board=s.randomBoards?randomHexagon(random):(boards[s.round-1]||randomHexagon(random));
     s.board=board.slice(0,19);s.target=board[19];s.found=[];s.owner=null;
@@ -67,7 +83,7 @@ function startRound(s,now,random=Math.random){
 }
 export function create(game,now=Date.now(),random=Math.random){
   const s={game,round:0,score:[0,0]};
-  if(game===6)s.order=shuffled([0,1,2],random);
+  if(game===6)s.order=chooseThemes(random);
   else s.randomBoards=true;
   startRound(s,now,random);
   return s;
@@ -88,6 +104,22 @@ export function advance(s,now){
 }
 export function act(s,seat,input,now=Date.now()){
   advance(s,now);
+  if(s.game===6&&seat===0){
+    if(input.kind==='reveal'&&s.solution&&!s.revealed){
+      s.revealed=true;
+      if(s.phase==='build')s.assisted=true;
+      return true;
+    }
+    if(input.kind==='skip'){
+      if(s.round===3){
+        s.order=chooseThemes(Math.random,s.order?.[2]??2);
+        s.round=0;
+        s.assisted=false;
+      }else if(s.phase!=='between')s.assisted=true;
+      startRound(s,now);
+      return true;
+    }
+  }
   if(input.kind==='next'&&seat===0&&s.phase==='between'){startRound(s,now);return true}
   if(s.phase==='build'&&Number.isInteger(seat)&&seat>=0&&seat<7){
     const ch=input.ch,w=s.towers[seat];
@@ -97,7 +129,9 @@ export function act(s,seat,input,now=Date.now()){
       s.bank=[...s.bank,w[input.index]].sort().join('');s.towers[seat]=w.slice(0,input.index)+w.slice(input.index+1);
     }else return false;
     if(!s.bank&&s.towers.every(w=>dict[s.order?.[s.round-1]??s.round-1].has(w))){
-      s.phase=s.round===3?'done':'between';s.note=s.round===3?'挑戰完成，三輪全部成功！':'七座塔完成！';
+      s.phase=s.round===3?'done':'between';
+      if(s.phase==='between')s.note='七座塔完成！';
+      else s.note=s.assisted?'三輪練習完結。':'挑戰完成，三輪全部成功！';
     }
     return true;
   }
@@ -118,6 +152,11 @@ export function act(s,seat,input,now=Date.now()){
   return false;
 }
 export function visible(s){
-  const {found,idle,board,target,order,randomBoards,...rest}=s;
-  return {...rest,...(s.game===6?{theme:order?.[s.round-1]??s.round-1}:{}),...(s.phase==='study'?{board}:{}),...(['buzz','answer'].includes(s.phase)?{target}:{})};
+  const {found,idle,board,target,order,randomBoards,solution,revealed,assisted,...rest}=s;
+  const wordTower=s.game===6?{
+    theme:order?.[s.round-1]??s.round-1,
+    canReveal:Boolean(solution),
+    ...(revealed?{answer:solution}:{})
+  }:{};
+  return {...rest,...wordTower,...(s.phase==='study'?{board}:{}),...(['buzz','answer'].includes(s.phase)?{target}:{})};
 }

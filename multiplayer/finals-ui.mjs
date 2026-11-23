@@ -1,4 +1,4 @@
-import {create,advance,act,visible,themes} from './finals-rules.mjs?v=random1';
+import {create,advance,act,visible,themes} from './finals-rules.mjs?v=word-tower2';
 const $=id=>document.getElementById(id);
 const url=new URL(location.href),game=Number(url.searchParams.get('game'))===14?14:6;
 const capacity=game===6?7:2, alphabet='ABCDEFGHIJKLMNOPQRS';
@@ -45,8 +45,25 @@ function render(){
  el(box,'h2',(s.round>10?'延長賽 ':'第 '+s.round+' 輪')+(game===6?' · '+themes[s.theme??s.round-1]:' · '+s.score.join(' 比 ')));
  const clock=el(box,'strong','','time');clock.id='clock';updateClock(s);
  if(s.note)el(box,'p',s.note);
+ if(game===6){
+   if(local||snap.seat===0){
+     const actions=el(box,'div','','actions');
+     if(s.canReveal&&!s.answer)btn(actions,'顯示答案',()=>move(0,{kind:'reveal'}));
+     btn(actions,'跳到下一題',()=>move(0,{kind:'skip'}));
+   }
+   if(s.answer){
+     const answer=el(box,'section','','word-answer');
+     el(answer,'h2','其中一組答案');
+     const words=el(answer,'ul');
+     for(const word of s.answer)el(words,'li',word);
+   }
+ }
  if(s.phase==='done'){btn(box,'返回遊戲入口',()=>{url.searchParams.delete('room');location.href=url.href});return}
- if(s.phase==='between'){if(local||snap.seat===0)btn(box,'開始下一輪',()=>move(0,{kind:'next'}));else el(box,'p','等待房主開始下一輪');return}
+ if(s.phase==='between'){
+   if(!local&&snap.seat!==0)el(box,'p','等待房主開始下一輪');
+   else if(game!==6)btn(box,'開始下一輪',()=>move(0,{kind:'next'}));
+   return;
+ }
  if(game===6){
  const seat=local?mat:snap.seat;
  el(box,'p',local?'點玩家揀字塔，再點公用字粒砌字。點塔上字粒可以放返去。':'你係玩家 '+(seat+1)+'。點公用字粒加到自己座塔；點自己塔上字粒可以放返去。');
