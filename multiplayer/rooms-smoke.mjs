@@ -77,6 +77,29 @@ function answer(game,seed,question=1) {
   const random = seededRandom(seed);
   const range = n => Array.from({length:n},(_,i)=>i);
   if (game===36) return [0,1];
+  if (game===40) {
+    const shuffle16=()=>{
+      const positions=range(16);
+      for(let i=15;i>0;i--){
+        const j=Math.floor(random()*(i+1));
+        [positions[i],positions[j]]=[positions[j],positions[i]];
+      }
+      return positions;
+    };
+    shuffle16();
+    return shuffle16().slice(0,4);
+  }
+  if (game===47) {
+    const axis=(question-1)%3, clues=new Map(), pairs=[];
+    for(let y=0;y<6;y++)for(let x=0;x<6;x++){
+      const index=y*6+x;
+      const mirror=[y*6+5-x,(5-y)*6+x,x*6+y][axis];
+      if(index<=mirror)clues.set(index,1+Math.floor(random()*4));
+      else pairs.push(mirror);
+    }
+    return pairs.map(index=>clues.get(index));
+  }
+
   if (game===42) {
     if(question===1)return [0,13,15,22];
     const cards=range(26);
@@ -132,6 +155,12 @@ for(const [id,config] of Object.entries(roomGames)){
   assert.equal(verifyRace(game,242,[]),null);
   assert.notEqual(verifyRace(game,242,answer(game,242)),null,game+' proof');
   assert.notEqual(verifyRace(game,999,answer(game,999,2),2),null,game+' second proof');
+  if(game===40||game===47){
+    const third=answer(game,781,3);
+    assert.equal(verifyRace(game,781,third,3),0);
+    third[0]=-1;
+    assert.equal(verifyRace(game,781,third,3),null);
+  }
   console.log('PASS race validation twice',game);
 }
 

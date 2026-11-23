@@ -1,4 +1,4 @@
-import {roomGames, seededRandom} from './catalog.mjs';
+import {roomGames, seededRandom} from './catalog.mjs?v=two-puzzles';
 
 const board = document.getElementById('board');
 const controls = document.getElementById('controls');
