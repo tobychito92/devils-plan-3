@@ -1,3 +1,4 @@
+import {spotLayout,assemblyLayouts} from './exile-puzzles.mjs';
 import assert from 'node:assert/strict';
 import {randomBytes} from 'node:crypto';
 import {roomGames, seededRandom} from './catalog.mjs';
@@ -77,6 +78,8 @@ function answer(game,seed,question=1) {
   const random = seededRandom(seed);
   const range = n => Array.from({length:n},(_,i)=>i);
   if (game===36) return [0,1];
+  if(game===40)return spotLayout(random,question).changes.map(region=>region.slice(0,2));
+  if(game===47)return assemblyLayouts(random).map(set=>set.solution);
   if (game===42) {
     if(question===1)return [0,13,15,22];
     const cards=range(26);
@@ -132,6 +135,12 @@ for(const [id,config] of Object.entries(roomGames)){
   assert.equal(verifyRace(game,242,[]),null);
   assert.notEqual(verifyRace(game,242,answer(game,242)),null,game+' proof');
   assert.notEqual(verifyRace(game,999,answer(game,999,2),2),null,game+' second proof');
+  if(game===40||game===47){
+    const third=answer(game,781,3);
+    assert.equal(verifyRace(game,781,third,3),game===40?5:0);
+    third[0]=-1;
+    assert.equal(verifyRace(game,781,third,3),null);
+  }
   console.log('PASS race validation twice',game);
 }
 
@@ -160,13 +169,23 @@ if (process.argv[2]) {
     if (config.race) {
       assert.equal(started.seed,guest.seed);
       await new Promise(resolve=>setTimeout(resolve, Math.max(3000, started.started-Date.now()+600)));
+      if(game===40){
+        await send('finish',0,{version:started.version,proof:[]},409);
+        await new Promise(resolve=>setTimeout(resolve,Math.max(0,started.started+120200-Date.now())));
+      }
       await send('finish',0,{version:started.version,proof:[]},422);
       const proof=answer(game,started.seed);
       await send('finish',0,{version:started.version,proof});
       const current=await send('state',1);
       await send('finish',1,{version:current.version,proof:game===36?[2,3]:proof});
-      const finished=await send('state',0);
+      let finished=await send('state',0);
+      if(game===40||game===47){
+        const count=game===40?capacity:capacity-1;
+        for(let seat=2;seat<count;seat++)finished=await send('finish',seat,{version:finished.version,proof});
+        if(game===47)assert.deepEqual(finished.outcome.out,[capacity-1]);
+      }
       assert(finished.results[0].elapsed>=0);
+      if(game===40)assert.equal(finished.points[0],5);
       await send('next',1,{version:finished.version},409);
       const next=await send('next',0,{version:finished.version});
       assert.equal(next.question,2);
@@ -176,6 +195,7 @@ if (process.argv[2]) {
       assert.equal((await send('state',1)).question,2);
       await new Promise(resolve=>setTimeout(resolve, Math.max(3000, next.started-Date.now()+600)));
       await send('finish',0,{version:next.version,question:1,proof},409);
+      if(game===40)await new Promise(resolve=>setTimeout(resolve,Math.max(0,next.started+120200-Date.now())));
       const second=await send('finish',0,{version:next.version,question:2,proof:answer(game,next.seed,2)});
       assert(second.results[0].elapsed>=0);
     } else {

@@ -161,3 +161,10 @@ header { padding: 10px 0 13px; border-color: #655145; color: var(--gold); }
   .entry img { aspect-ratio: 1.5; }
   #play h2 { padding-right: 42px; }
 }
+
+.memory-plate{width:min(100%,560px);margin:auto;line-height:0}
+.memory-plate canvas,.assembly-table{display:block;width:100%;height:auto}
+.memory-plate canvas{cursor:crosshair}
+.assembly-table{max-width:600px;display:block;margin:auto;background:linear-gradient(#24180c45,#24180c65),url(./parchment.webp) center/cover;touch-action:none;border-radius:8px}
+.assembly-tabs{display:flex;justify-content:center;gap:8px;margin:0 0 8px}
+.assembly-tabs button[aria-pressed=true]{outline:2px solid #dfae68}

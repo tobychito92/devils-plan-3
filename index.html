@@ -61,7 +61,7 @@
 .heavy-choices button:disabled{opacity:.42}
 .heavy-score{display:flex;flex-wrap:wrap;gap:5px 12px;font-size:13px}
 @media(max-width:430px){.table-tray{gap:6px}.table-card{width:38px;height:51px}.heavy-board{gap:5px}.heavy-stones .table-stone{width:23px;height:21px}}
-</style><style>.online-room-info p{margin:3px 0;font-size:14px}.online-room-info{margin-bottom:12px}#board input{max-width:100%;width:132px}</style><link rel="stylesheet" href="./art/arena.css?v=2"><main><header><span>THE DEVIL’S PLAN</span><span>DEAD AGAIN</span></header><section id="home"><div class="arena-hero"><h1>魔鬼的計謀</h1><p>單人挑戰・本機對戰・網上開房</p></div><div class="list" id="menu"></div><footer>非官方可玩版 · 題板重繪</footer></section><section id="play" hidden><button class="link" onclick="lobby()">‹ 所有遊戲</button><h2 id="title"></h2><button id="online-entry" hidden>網上開房／加入</button><div id="room-status" role="status" hidden></div><p id="hint"></p><div class="panel" id="board"></div><div id="controls" class="bar"></div><div class="msg" id="msg" role="status"></div></section></main>
+</style><style>.online-room-info p{margin:3px 0;font-size:14px}.online-room-info{margin-bottom:12px}#board input{max-width:100%;width:132px}</style><link rel="stylesheet" href="./art/arena.css?v=plates2"><main><header><span>THE DEVIL’S PLAN</span><span>DEAD AGAIN</span></header><section id="home"><div class="arena-hero"><h1>魔鬼的計謀</h1><p>單人挑戰・本機對戰・網上開房</p></div><div class="list" id="menu"></div><footer>非官方可玩版 · 題板重繪</footer></section><section id="play" hidden><button class="link" onclick="lobby()">‹ 所有遊戲</button><h2 id="title"></h2><button id="online-entry" hidden>網上開房／加入</button><div id="room-status" role="status" hidden></div><p id="hint"></p><div class="panel" id="board"></div><div id="controls" class="bar"></div><div class="msg" id="msg" role="status"></div></section></main>
 <script>
 const $=s=>document.getElementById(s), games=[
 [33,'數立方體','Count the Cubes','數出所有方塊，包括被遮住嘅底層。每條柱由地面疊起，中間冇空位。'],
@@ -77,25 +77,27 @@ const $=s=>document.getElementById(s), games=[
 [30,'問題與真相','Question & Truth','本機雙人，各自秘密排八張牌。暗投代幣爭取提問或猜對手嘅牌序。'],
 [21,'狙擊撲克','Sniper Hold’em','兩輪下注後，可以狙擊指定牌型。最強未被狙擊嘅牌贏彩池，交回 75 籌碼晉級。'],
 [31,'騎士巡遊','Knight’s Tour','行日字步，走遍 5×5 棋盤，每格只可踏一次。㩒亮起嘅格移動，可以退步或睇提示。'],
-[37,'Heavy 13','Heavy 13','秘密揀重量同顏色籌碼。令任何一磅到 13 或以上就會受罰。14 輪後罰分最多嘅兩位出局。']];
+[37,'Heavy 13','Heavy 13','秘密揀重量同顏色籌碼。令任何一磅到 13 或以上就會受罰。14 輪後罰分最多嘅兩位出局。'],
+[40,'找不同','Spot the Difference','先記住原相，再喺改動相上標記五處變化。每組三回合，每處答啱得一分。'],
+[47,'對稱拼圖','Symmetry Puzzle','用齊同色拼件砌成一個左右對稱嘅形狀。拼件可以旋轉，唔可以翻面。砌好藍、紅、綠三組先提交。']];
 const letter=i=>String.fromCharCode(65+i), seq=n=>Array.from({length:n},(_,i)=>i);
 function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(gameRandom()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-let mode,round,timer,answer,check,finished,feedback,raceFinish,raceProof;
+let mode,round,timer,answer,check,finished,feedback,raceFinish,raceProof,raceStarted=0,spotTotal=0;
 const online=window.onlineGame||null;
 let gameRandom=online?.random||Math.random;
-function stopRace(){if(raceFinish)clearInterval(timer);raceFinish=null;gameRandom=Math.random}
+function stopRace(){if(raceFinish)clearInterval(timer);raceFinish=null;raceStarted=0;gameRandom=Math.random}
 function onlineGameLabel(id){return games.find(game=>game[0]===id)?.[1]}
 function onlineGameView(id){$('play').dataset.game=id;clearInterval(timer);$('online-entry').hidden=true;mode=games.findIndex(game=>game[0]===id);$('home').hidden=true;$('play').hidden=false;$('title').textContent=games[mode][1];$('hint').textContent=games[mode][3]}
-function launchRace(id,question,random,finish){
+function launchRace(id,question,random,finish,startedAt){
   stopRace();onlineGameView(id);round=question;finished=false;feedback='';raceProof=null;
-  raceFinish=finish;gameRandom=random;
+  raceFinish=finish;raceStarted=startedAt;gameRandom=random;
   $('board').className='panel';$('controls').replaceChildren();$('msg').textContent='';
-  ({31:knightTour,33:cube,34:rect,36:poker,42:code,44:fence})[id]();
+  ({31:knightTour,33:cube,34:rect,36:poker,40:spotDifference,42:code,44:fence,47:symmetryPuzzle})[id]();
 }
-$('menu').innerHTML=games.map(([id,name,en],i)=>({id,name,en,i})).sort((a,b)=>a.id-b.id).map(({id,name,en,i})=>'<button class="entry" onclick="start('+i+')"><img src="./art/game-'+id+'.webp" alt="" width="372" height="500" '+(id>28?'loading="lazy"':'')+'><b>'+id+'</b><span><strong>'+name+'</strong><small>'+en+'</small></span><i>›</i></button>').join('');
+$('menu').innerHTML=games.map(([id,name,en],i)=>({id,name,en,i})).sort((a,b)=>a.id-b.id).map(({id,name,en,i})=>'<button class="entry" onclick="start('+i+')"><img src="./art/game-'+id+'.webp'+([40,47].includes(id)?'?v=plates2':'')+'" alt="" width="372" height="500" '+(id>28?'loading="lazy"':'')+'><b>'+id+'</b><span><strong>'+name+'</strong><small>'+en+'</small></span><i>›</i></button>').join('');
 function lobby(){stopRace();window.dispatchEvent(new Event('tiger-view-exit'));clearInterval(timer);$('home').hidden=false;$('play').hidden=true}
-function start(i){mode=i;round=0;$('home').hidden=true;$('play').hidden=false;next();window.scrollTo?.(0,0)}
-function next(){if(raceFinish)return;window.dispatchEvent(new Event('tiger-view-exit'));clearInterval(timer);round++;finished=false;feedback='';$('play').dataset.game=games[mode][0];$('board').className='panel';$('title').textContent=games[mode][1];$('hint').textContent=games[mode][3];$('msg').textContent='';$('controls').innerHTML='';[cube,rect,poker,code,fence,wallGo,millCourt,fogLinks,cardForecast,ridgeEscape,signalQuestions,pokerExchange,knightTour,sumThirteen][mode]();
+function start(i){if([40,47].includes(games[i][0])&&!window.exilePuzzles){import(new URL('./multiplayer/exile-puzzles.mjs?v=plates2',document.baseURI).href).then(()=>start(i));return}mode=i;round=0;$('home').hidden=true;$('play').hidden=false;next();window.scrollTo?.(0,0)}
+function next(){if(raceFinish)return;window.dispatchEvent(new Event('tiger-view-exit'));clearInterval(timer);round++;finished=false;feedback='';$('play').dataset.game=games[mode][0];$('board').className='panel';$('title').textContent=games[mode][1];$('hint').textContent=games[mode][3];$('msg').textContent='';$('controls').innerHTML='';[cube,rect,poker,code,fence,wallGo,millCourt,fogLinks,cardForecast,ridgeEscape,signalQuestions,pokerExchange,knightTour,sumThirteen,spotDifference,symmetryPuzzle][mode]();
   const entry=$('online-entry');
   entry.hidden=!window.openGameRoom||games[mode][0]===29;
   entry.onclick=()=>window.openGameRoom(games[mode][0]);
@@ -1233,4 +1235,186 @@ function knightTour(){
   }
   render();
 }
-</script><script type="module" src="./multiplayer/client.mjs"></script><script type="module" src="./multiplayer/rooms-client.mjs?v=next-question"></script></html>
+function spotDifference(){
+  const {spotLayout,spotScore,studyMs}=window.exilePuzzles;
+  const {plate,changes}=spotLayout(gameRandom,round);
+  if(online?.raceCheck){online.verify=proof=>spotScore(changes,proof);return}
+  const marks=[], stage=document.createElement('div'), canvas=document.createElement('canvas');
+  const phase=raceFinish&&window.spotPhase||1+(round-1)%3;
+  if(!raceFinish&&phase===1)spotTotal=0;
+  stage.className='memory-plate';
+  canvas.width=canvas.height=768;
+  canvas.setAttribute('aria-label','觀察圖畫');
+  stage.append(canvas);
+  $('board').replaceChildren(stage);
+  const ctx=canvas.getContext('2d'),pictures=[new Image(),new Image()];
+  let comparing=false,review=false;
+  const label=phase>3?'同分加賽':'第 '+phase+'／3 回合';
+  function paint(){
+    ctx.drawImage(pictures[0],0,0,768,768);
+    if(comparing)for(const [x,y,rx,ry] of changes){
+      ctx.save();ctx.beginPath();ctx.ellipse(x*768,y*768,rx*768,ry*768,0,0,2*Math.PI);
+      ctx.clip();ctx.drawImage(pictures[1],0,0,768,768);ctx.restore();
+      if(review){ctx.beginPath();ctx.ellipse(x*768,y*768,rx*768,ry*768,0,0,2*Math.PI);ctx.strokeStyle='#22ff9a';ctx.lineWidth=4;ctx.stroke()}
+    }
+    for(const [x,y] of marks){
+      ctx.beginPath();
+      for(const d of [-1,1]){ctx.moveTo(x*768-10,y*768-10*d);ctx.lineTo(x*768+10,y*768+10*d)}
+      ctx.lineCap='round';ctx.strokeStyle='white';ctx.lineWidth=8;ctx.stroke();
+      ctx.strokeStyle='#b41f37';ctx.lineWidth=4;ctx.stroke();
+    }
+  }
+  canvas.onclick=e=>{
+    if(!comparing||finished)return;
+    const box=canvas.getBoundingClientRect(), x=(e.clientX-box.left)/box.width,y=(e.clientY-box.top)/box.height;
+    const index=marks.findIndex(([a,b])=>Math.hypot(a-x,b-y)<.029);
+    if(index>=0)marks.splice(index,1);
+    else if(marks.length<5)marks.push([x,y].map(v=>+v.toFixed(4)));
+    else {$('msg').textContent='已標記五處。撳交叉可取消，再揀另一處。';return}
+    paint();$('spot-count').textContent=label+' · '+marks.length+'／5';
+    $('submit').disabled=marks.length!==5;
+  };
+  function reveal(){
+    if(comparing)return;
+    comparing=true;clearInterval(timer);paint();
+    controls('<strong id="spot-count">'+label+' · 0／5</strong>');
+    $('controls').querySelector('.link')?.remove();
+    $('submit').disabled=true;
+    $('msg').textContent='直接喺圖上撳五處變化。再撳交叉可以取消。';
+  }
+  $('controls').replaceChildren();$('msg').textContent='載入圖畫中…';
+  pictures.forEach((img,i)=>{img.src='./art/plate-'+plate.id+'-'+i+'.webp'});
+  Promise.all(pictures.map(img=>img.decode())).then(()=>{
+    if(!stage.isConnected||$('play').hidden||!stage.parentElement)return;
+    paint();$('msg').textContent='記住成幅圖嘅細節。';
+    $('controls').innerHTML='<strong id="spot-clock"></strong>'+(raceFinish?'':'<button id="spot-skip">記好，開始作答</button>');
+    if(!raceFinish)$('spot-skip').onclick=reveal;
+    const deadline=(raceStarted||Date.now())+studyMs;
+    function clock(){
+      const seconds=Math.ceil((deadline-Date.now())/1000);
+      if(seconds<=0){reveal();return}
+      $('spot-clock').textContent=label+' · 記憶時間 '+seconds+' 秒';
+    }
+    timer=setInterval(clock,200);clock();
+  }).catch(()=>{if(stage.isConnected)$('msg').textContent='圖畫未能載入，請重新開局。'});
+  check=()=>{
+    if(!comparing||marks.length!==5)return null;
+    raceProof=marks;
+    const points=spotScore(changes,marks);
+    if(!raceFinish)spotTotal+=points;
+    feedback='今輪 '+points+'／5'+(raceFinish?'':' · '+(phase===3?'三輪總分 ':'累計 ')+spotTotal+'／15');
+    review=true;paint();return true;
+  };
+}
+
+function symmetryPuzzle(){
+  const {assemblyLayouts,colors,world,solved}=window.exilePuzzles;
+  const sets=assemblyLayouts(gameRandom);
+  const valid=proof=>Array.isArray(proof)&&proof.length===3&&sets.every(({pieces},i)=>solved(pieces,proof[i]));
+  if(online?.raceCheck){online.verify=proof=>valid(proof)?0:null;return}
+  const poses=sets.map(set=>set.start.map(p=>p.slice()));
+  const canvas=document.createElement('canvas'), tabs=document.createElement('div');
+  const tones=[['#67c8f5','#14527a'],['#ff8b78','#9d2a30'],['#87d19b','#20664e']];
+  const textures=colors.map((_,i)=>{const image=new Image();image.src='./art/enamel-'+i+'.webp';return image});
+  let group=0,selected=0,drag=null,handle=null;
+  canvas.className='assembly-table';canvas.tabIndex=0;
+  canvas.width=800;canvas.height=680;
+  canvas.setAttribute('aria-label','拼件枱。拖動拼件，拖金色手柄旋轉。方向鍵移動，Q、E 旋轉。');
+  tabs.className='assembly-tabs';
+  const board=$('board');board.replaceChildren(tabs,canvas);
+  const ctx=canvas.getContext('2d');
+  function path(poly){
+    ctx.beginPath();poly.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.closePath();
+  }
+  function draw(){
+    ctx.setTransform(2,0,0,2,0,0);ctx.clearRect(0,0,400,340);
+    const pieces=sets[group].pieces;
+    pieces.forEach((p,i)=>{
+      const poly=world(p,poses[group][i]), y=poses[group][i][1];
+      path(poly);
+      const grad=ctx.createLinearGradient(0,y-50,6,y+58);
+      grad.addColorStop(0,tones[group][0]);grad.addColorStop(1,tones[group][1]);
+      ctx.fillStyle=grad;ctx.shadowColor='#160c08aa';ctx.shadowOffsetY=4;ctx.shadowBlur=5;
+      ctx.fill();ctx.shadowBlur=ctx.shadowOffsetY=0;
+      if(textures[group].complete&&textures[group].naturalWidth){
+        ctx.save();ctx.globalAlpha=.52;ctx.fillStyle=ctx.createPattern(textures[group],'repeat');ctx.fill();ctx.restore();
+      }
+      ctx.strokeStyle=i===selected?'#fff1c7':'#332b2b';ctx.lineWidth=i===selected?2.4:1.4;ctx.stroke();
+    });
+    const pose=poses[group][selected], poly=world(pieces[selected],pose);
+    const top=poly.reduce((a,b)=>a[1]<b[1]?a:b);
+    handle=[Math.max(9,Math.min(391,top[0])),Math.max(10,top[1]-18)];
+    ctx.beginPath();ctx.moveTo(...top);ctx.lineTo(...handle);ctx.strokeStyle='#fff0c9';ctx.stroke();
+    ctx.beginPath();ctx.arc(...handle,6,0,2*Math.PI);ctx.fillStyle='#d9a444';ctx.fill();ctx.stroke();
+    [...tabs.children].forEach((b,i)=>b.setAttribute('aria-pressed',String(i===group)));
+  }
+  function point(e){const r=canvas.getBoundingClientRect();return [(e.clientX-r.left)*400/r.width,(e.clientY-r.top)*340/r.height]}
+  function confine(){
+    const p=poses[group][selected], vertices=world(sets[group].pieces[selected],p);
+    for(const [k,limit] of [[0,400],[1,340]]){
+      const vals=vertices.map(v=>v[k]);p[k]+=Math.max(0,-Math.min(...vals))-Math.max(0,Math.max(...vals)-limit);
+    }
+  }
+  function rotate(delta){const p=poses[group][selected];p[2]=(p[2]+delta+360)%360;confine();draw()}
+  function snap(){
+    const p=poses[group][selected], parts=sets[group].pieces, mine=world(parts[selected],p);
+    let nearest=6,shift;
+    parts.forEach((part,i)=>{if(i!==selected)for(const b of world(part,poses[group][i]))for(const a of mine){
+      const dx=b[0]-a[0],dy=b[1]-a[1],d=Math.hypot(dx,dy);
+      if(d<nearest){nearest=d;shift=[dx,dy]}
+    }});
+    if(shift){p[0]+=shift[0];p[1]+=shift[1]}confine();
+  }
+  canvas.onpointerdown=e=>{
+    if(finished||drag)return;
+    const pos=point(e);
+    const turning=Math.hypot(pos[0]-handle[0],pos[1]-handle[1])<=12;
+    if(!turning){
+      let hit=-1;
+      sets[group].pieces.forEach((p,i)=>{path(world(p,poses[group][i]));if(ctx.isPointInPath(pos[0]*2,pos[1]*2))hit=i});
+      if(hit<0)return;
+      selected=hit;
+    }
+    const start=poses[group][selected].slice();
+    drag={id:e.pointerId,pos,start,turning,angle:Math.atan2(pos[1]-start[1],pos[0]-start[0])};
+    canvas.setPointerCapture(e.pointerId);draw();
+  };
+  canvas.onpointermove=e=>{
+    if(!drag||drag.id!==e.pointerId)return;
+    const [x,y]=point(e),p=poses[group][selected],{pos,start,angle}=drag;
+    if(drag.turning){
+      let deg=(start[2]+(Math.atan2(y-start[1],x-start[0])-angle)*180/Math.PI+720)%360;
+      const near=Math.round(deg/15)*15;p[2]=Math.abs(near-deg)<2?near:deg;
+    }else{p[0]=start[0]+x-pos[0];p[1]=start[1]+y-pos[1]}
+    confine();draw();
+  };
+  canvas.onpointerup=canvas.onpointercancel=e=>{if(drag?.id===e.pointerId){drag=null;snap();draw()}};
+  canvas.onkeydown=e=>{
+    if(finished)return;
+    const p=poses[group][selected],key=e.key.toLowerCase(),step=e.shiftKey?8:1;
+    const moves={arrowleft:[-1,0],arrowright:[1,0],arrowup:[0,-1],arrowdown:[0,1]};
+    if(moves[key]){p[0]+=moves[key][0]*step;p[1]+=moves[key][1]*step;confine()}
+    else if(key==='q'||key==='e')rotate(key==='q'?-15:15);
+    else if(key===' '){selected=(selected+1)%poses[group].length}
+    else return;
+    e.preventDefault();draw();
+  };
+  textures.forEach(image=>{image.onload=()=>{if(canvas.isConnected)draw()}});
+  colors.forEach((color,i)=>challengeButton(tabs,color+'組',()=>{if(!finished){group=i;selected=0;draw()}}));
+  controls('');
+  $('submit').textContent='撳鐘驗收三組';
+  for(const delta of [-15,15]){
+    const btn=document.createElement('button');btn.textContent=delta<0?'↶ 15°':'↷ 15°';
+    btn.onclick=()=>{if(!finished)rotate(delta)};
+    $('controls').prepend(btn);
+  }
+  $('msg').textContent='拖動拼件拼合。拖金色手柄自由旋轉，或用按鈕轉 15°。';
+  check=()=>{
+    raceProof=poses.map(set=>set.map(p=>p.map(n=>+n.toFixed(3))));
+    const ok=valid(raceProof);
+    feedback=ok?'三組驗收成功！':'驗收未通過。請檢查三組嘅輪廓、接縫同重疊，再撳鐘。';
+    return ok;
+  };
+  draw();
+}
+</script><script type="module" src="./multiplayer/exile-puzzles.mjs?v=plates2"></script><script type="module" src="./multiplayer/client.mjs"></script><script type="module" src="./multiplayer/rooms-client.mjs?v=plates2"></script></html>

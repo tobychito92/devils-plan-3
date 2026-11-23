@@ -1,4 +1,4 @@
-import {roomGames, seededRandom} from './catalog.mjs';
+import {roomGames, seededRandom} from './catalog.mjs?v=two-puzzles';
 
 const board = document.getElementById('board');
 const controls = document.getElementById('controls');
@@ -207,16 +207,23 @@ window.openGameRoom = function openGameRoom(game) {
     text(status, snapshot.names.map((name,i) => (i + 1) + '. ' + name).join(' ｜ '));
     if (lastError) text(status, lastError);
     if (snapshot.race && snapshot.started) {
-      text(status, '第 ' + (snapshot.question || 1) + ' 題');
+      const roundInSet=snapshot.phase||1;
+      text(status, game===40?(roundInSet>3?'同分加賽':'第 '+roundInSet+'／3 回合'):'第 '+(snapshot.question||1)+' 題');
+      if(game===40&&snapshot.points){
+        const standings=Object.entries(snapshot.points).sort(([,a],[,b])=>b-a);
+        if(standings.length)text(status,'累計：'+standings.map(([seat,points])=>snapshot.names[seat]+' '+points+'／15').join(' ｜ '));
+      }
       const results = Object.entries(snapshot.results).sort(([, a], [, b]) => b.score - a.score || a.elapsed - b.elapsed);
-      const allDone = results.length === snapshot.capacity;
+      const allDone = Boolean(snapshot.outcome)||(snapshot.active||snapshot.names).length===results.length;
+      if(snapshot.outcome)text(status,'晉級：'+snapshot.outcome.survived.map(i=>snapshot.names[i]).join('、')+' ｜ 淘汰：'+snapshot.outcome.out.map(i=>snapshot.names[i]).join('、'));
+      else if(snapshot.tied)text(status,'同分加賽：'+snapshot.tied.map(i=>snapshot.names[i]).join('、'));
       if (!results.length) return;
       text(status, allDone ? '本題完成' : game === 36 ? '暫時排名（牌力優先）' : '完成排名');
       const list = document.createElement('ol');
       status.append(list);
-      for (const [seat, result] of results) text(list, snapshot.names[seat] + ' · ' + (result.elapsed / 1000).toFixed(1) + ' 秒', 'li');
-      if (snapshot.seat === 0 && snapshot.results[0]) {
-        makeButton(status, '下一題', () => {
+      for (const [seat, result] of results) text(list, snapshot.names[seat] + ' · ' + (game===40?result.score+'／5 · ':'') + (result.elapsed / 1000).toFixed(1) + ' 秒', 'li');
+      if (snapshot.seat === 0 && ([40,47].includes(game)?allDone:snapshot.results[0])) {
+        makeButton(status, snapshot.outcome?'再開一局':snapshot.tied?'進入加賽':game===40?'下一回合':'下一題', () => {
           if (allDone || window.confirm('仲有人未完成，確定而家開下一題？')) request('next');
         });
       } else if (snapshot.results[snapshot.seat]) {
@@ -260,6 +267,10 @@ window.openGameRoom = function openGameRoom(game) {
         racing = false;
         submitted = undefined;
       }
+      if(snapshot.outcome || (snapshot.active&&!snapshot.active.includes(snapshot.seat))){
+        window.stopRace();racing=false;submitted=undefined;reset();
+        text(board,snapshot.outcome?'本局完結':'等候同分玩家完成加賽。','h3');return;
+      }
       if (racing) return;
       reset();
       if (snapshot.started > Date.now()) {
@@ -271,10 +282,11 @@ window.openGameRoom = function openGameRoom(game) {
         return;
       }
       racing = true;
+      window.spotPhase=snapshot.phase;
       window.launchRace(game, question, seededRandom(snapshot.seed), proof => {
         submitted = proof;
         request('finish', {question, proof});
-      });
+      }, snapshot.started);
       return;
     }
     reset();
