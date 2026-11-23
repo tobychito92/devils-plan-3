@@ -96,7 +96,7 @@ function launchRace(id,question,random,finish,startedAt){
 }
 $('menu').innerHTML=games.map(([id,name,en],i)=>({id,name,en,i})).sort((a,b)=>a.id-b.id).map(({id,name,en,i})=>'<button class="entry" onclick="start('+i+')"><img src="./art/game-'+id+'.webp" alt="" width="372" height="500" '+(id>28?'loading="lazy"':'')+'><b>'+id+'</b><span><strong>'+name+'</strong><small>'+en+'</small></span><i>›</i></button>').join('');
 function lobby(){stopRace();window.dispatchEvent(new Event('tiger-view-exit'));clearInterval(timer);$('home').hidden=false;$('play').hidden=true}
-function start(i){if([40,47].includes(games[i][0])&&!window.exilePuzzles){import('./multiplayer/exile-puzzles.mjs').then(()=>start(i));return}mode=i;round=0;$('home').hidden=true;$('play').hidden=false;next();window.scrollTo?.(0,0)}
+function start(i){if([40,47].includes(games[i][0])&&!window.exilePuzzles){import(new URL('./multiplayer/exile-puzzles.mjs',document.baseURI).href).then(()=>start(i));return}mode=i;round=0;$('home').hidden=true;$('play').hidden=false;next();window.scrollTo?.(0,0)}
 function next(){if(raceFinish)return;window.dispatchEvent(new Event('tiger-view-exit'));clearInterval(timer);round++;finished=false;feedback='';$('play').dataset.game=games[mode][0];$('board').className='panel';$('title').textContent=games[mode][1];$('hint').textContent=games[mode][3];$('msg').textContent='';$('controls').innerHTML='';[cube,rect,poker,code,fence,wallGo,millCourt,fogLinks,cardForecast,ridgeEscape,signalQuestions,pokerExchange,knightTour,sumThirteen,spotDifference,symmetryPuzzle][mode]();
   const entry=$('online-entry');
   entry.hidden=!window.openGameRoom||games[mode][0]===29;
