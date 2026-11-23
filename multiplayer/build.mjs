@@ -1,8 +1,9 @@
-import {mkdir, copyFile, readFile, writeFile} from 'node:fs/promises';
+import {mkdir, copyFile, cp, readFile, writeFile} from 'node:fs/promises';
 await mkdir('public/multiplayer', {recursive: true});
 for (const file of ['index.html', 'multiplayer/client.mjs', 'multiplayer/rules.mjs', 'multiplayer/catalog.mjs', 'multiplayer/rooms-client.mjs']) {
   await copyFile(file, 'public/' + file);
 }
+await cp('art', 'public/art', {recursive: true});
 // Use the same rule implementations on both platforms. Only Wrangler bundles this module.
 const html = await readFile('index.html', 'utf8');
 const source = html.match(/<script>([\s\S]+?)<\/script>/)?.[1];
