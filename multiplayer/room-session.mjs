@@ -1,5 +1,5 @@
 import * as finals from './finals-rules.mjs';
-import {spotLayout,studyMs} from './exile-puzzles.mjs';
+import {availableScenes,recordScene,spotLayout,studyMs} from './exile-puzzles.mjs';
 import {roomGames,seededRandom} from './catalog.mjs';
 import {prepareGame, verifyRace} from './headless.mjs';
 
@@ -87,10 +87,15 @@ export class Session {
       }else if(!Object.hasOwn(session.results,seat))return 'waiting';
       session.question = (session.question || 1) + 1;
       const previous = session.seed;
-      const previousPlate=session.game===40?spotLayout(seededRandom(previous)).plate.id:null;
+      let allowed;
+      if(session.game===40){
+        const current=spotLayout(seededRandom(previous)).plate.id;
+        session.seenScenes=recordScene(session.seenScenes,current);
+        allowed=new Set(availableScenes(session.seenScenes).map(plate=>plate.id));
+      }
       do {
         session.seed=crypto.getRandomValues(new Uint32Array(1))[0];
-      } while (session.seed===previous || (previousPlate&&spotLayout(seededRandom(session.seed)).plate.id===previousPlate));
+      } while (session.seed===previous || (allowed&&!allowed.has(spotLayout(seededRandom(session.seed)).plate.id)));
       session.results = {};
       session.started = Date.now() + 4000;
       return '';

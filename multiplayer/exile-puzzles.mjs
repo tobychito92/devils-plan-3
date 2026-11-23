@@ -1,8 +1,17 @@
-import {plates} from './plates.mjs';
+import {plates} from './plates.mjs?v=scenes20';
 export const studyMs = 120000;
-export function spotLayout(random, previousId) {
-  const choices = plates.filter(plate=>plate.id!==previousId);
-  const plate = choices[Math.floor(random()*choices.length)];
+export function availableScenes(history=[]) {
+  const played = Array.isArray(history) ? history : [history];
+  const fresh = plates.filter(plate=>!played.includes(plate.id));
+  return fresh.length ? fresh : plates.filter(plate=>plate.id!==played.at(-1));
+}
+export function recordScene(history,id) {
+  const played=Array.isArray(history)?history.filter(value=>plates.some(plate=>plate.id===value)):[];
+  return played.length>=plates.length || played.includes(id) ? [id] : [...played,id];
+}
+export function spotLayout(random,history) {
+  const choices=availableScenes(history);
+  const plate=choices[Math.floor(random()*choices.length)];
   const order = plate.regions.map((_,i)=>i);
   for(let i=order.length-1;i>0;i--){
     const j=Math.floor(random()*(i+1));
@@ -151,4 +160,4 @@ export function solved(pieces,poses){
     return coverage-overlap>=total*.994;
   });
 }
-if(typeof window!=='undefined')window.exilePuzzles={spotLayout,spotScore,studyMs,assemblyLayouts,colors,world,solved};
+if(typeof window!=='undefined')window.exilePuzzles={recordScene,spotLayout,spotScore,studyMs,assemblyLayouts,colors,world,solved};

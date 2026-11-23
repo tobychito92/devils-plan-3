@@ -82,7 +82,7 @@ const $=s=>document.getElementById(s), games=[
 [47,'對稱拼圖','Symmetry Puzzle','用齊同色拼件砌成一個左右對稱嘅形狀。拼件可以旋轉，唔可以翻面。砌好藍、紅、綠三組先提交。'],[6,'單字塔','Word Tower','七人合作砌字'],[14,'六角形','Hexagon','雙人記憶搶答']];
 const letter=i=>String.fromCharCode(65+i), seq=n=>Array.from({length:n},(_,i)=>i);
 function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(gameRandom()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-let mode,round,timer,answer,check,finished,feedback,raceFinish,raceProof,raceStarted=0,spotTotal=0,lastSpotPlate;
+let mode,round,timer,answer,check,finished,feedback,raceFinish,raceProof,raceStarted=0,spotTotal=0,spotHistory=[];
 const online=window.onlineGame||null;
 let gameRandom=online?.random||Math.random;
 function stopRace(){if(raceFinish)clearInterval(timer);raceFinish=null;raceStarted=0;gameRandom=Math.random}
@@ -96,7 +96,7 @@ function launchRace(id,question,random,finish,startedAt){
 }
 $('menu').innerHTML=games.map(([id,name,en],i)=>({id,name,en,i})).sort((a,b)=>a.id-b.id).map(({id,name,en,i})=>'<button class="entry" onclick="start('+i+')"><img src="./art/game-'+id+'.webp'+([40,47].includes(id)?'?v=plates2':'')+'" alt="" width="372" height="500" '+(id>28?'loading="lazy"':'')+'><b>'+String(id).padStart(2,'0')+'</b><span><strong>'+name+'</strong><small>'+en+'</small></span><i>›</i></button>').join('');
 function lobby(){stopRace();window.dispatchEvent(new Event('tiger-view-exit'));clearInterval(timer);$('home').hidden=false;$('play').hidden=true}
-function start(i){if([6,14].includes(games[i][0])){location.href="./finals.html?game="+games[i][0];return}if([40,47].includes(games[i][0])&&!window.exilePuzzles){import(new URL('./multiplayer/exile-puzzles.mjs?v=random1',document.baseURI).href).then(()=>start(i));return}mode=i;round=0;$('home').hidden=true;$('play').hidden=false;next();window.scrollTo?.(0,0)}
+function start(i){if([6,14].includes(games[i][0])){location.href="./finals.html?game="+games[i][0];return}if([40,47].includes(games[i][0])&&!window.exilePuzzles){import(new URL('./multiplayer/exile-puzzles.mjs?v=scenes20',document.baseURI).href).then(()=>start(i));return}mode=i;round=0;$('home').hidden=true;$('play').hidden=false;next();window.scrollTo?.(0,0)}
 function next(){if(raceFinish)return;window.dispatchEvent(new Event('tiger-view-exit'));clearInterval(timer);round++;finished=false;feedback='';$('play').dataset.game=games[mode][0];$('board').className='panel';$('title').textContent=games[mode][1];$('hint').textContent='';window.showGameRules?.(games[mode][0]);$('msg').textContent='';$('controls').innerHTML='';[cube,rect,poker,code,fence,wallGo,millCourt,fogLinks,cardForecast,ridgeEscape,signalQuestions,pokerExchange,knightTour,sumThirteen,spotDifference,symmetryPuzzle][mode]();
   const entry=$('online-entry');
   entry.hidden=!window.openGameRoom||games[mode][0]===29;
@@ -1276,9 +1276,16 @@ function knightTour(){
   render();
 }
 function spotDifference(){
-  const {spotLayout,spotScore,studyMs}=window.exilePuzzles;
-  const {plate,changes}=spotLayout(gameRandom,(raceFinish||online?.raceCheck)?undefined:lastSpotPlate);
-  if(!raceFinish&&!online?.raceCheck)lastSpotPlate=plate.id;
+  const {recordScene,spotLayout,spotScore,studyMs}=window.exilePuzzles;
+  const solo=!raceFinish&&!online?.raceCheck;
+  if(solo){
+    try {const saved=JSON.parse(localStorage.getItem('devils.spot.scenes'));if(Array.isArray(saved))spotHistory=saved} catch {}
+  }
+  const {plate,changes}=spotLayout(gameRandom,solo?spotHistory:undefined);
+  if(solo){
+    spotHistory=recordScene(spotHistory,plate.id);
+    try {localStorage.setItem('devils.spot.scenes',JSON.stringify(spotHistory))} catch {}
+  }
   if(online?.raceCheck){online.verify=proof=>spotScore(changes,proof);return}
   const marks=[], stage=document.createElement('div'), canvas=document.createElement('canvas');
   const phase=raceFinish&&window.spotPhase||1+(round-1)%3;
@@ -1290,7 +1297,7 @@ function spotDifference(){
   $('board').replaceChildren(stage);
   const ctx=canvas.getContext('2d'),pictures=[new Image(),new Image()];
   let comparing=false,review=false;
-  const label=phase>3?'同分加賽':'第 '+phase+'／3 回合';
+  const label=(phase>3?'同分加賽':'第 '+phase+'／3 回合')+(plate.name?' · '+plate.name:'');
   function paint(){
     ctx.drawImage(pictures[0],0,0,768,768);
     if(comparing)for(const [x,y,rx,ry] of changes){
@@ -1458,4 +1465,4 @@ function symmetryPuzzle(){
   };
   draw();
 }
-</script><script type="module" src="./multiplayer/exile-puzzles.mjs?v=random1"></script><script type="module" src="./multiplayer/client.mjs"></script><script type="module" src="./multiplayer/rooms-client.mjs?v=random1"></script></html>
+</script><script type="module" src="./multiplayer/exile-puzzles.mjs?v=scenes20"></script><script type="module" src="./multiplayer/client.mjs"></script><script type="module" src="./multiplayer/rooms-client.mjs?v=random1"></script></html>
