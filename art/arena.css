@@ -118,15 +118,30 @@ header { padding: 10px 0 13px; border-color: #655145; color: var(--gold); }
 #play .wgGrid .wgCell:not([class*="wgLand"]) { background: linear-gradient(#f2d09b4a,#eecc9d47), var(--maple) center / 160px; }
 #play .wgGrid .wgCell.wgDest:not([class*="wgLand"]) { background: linear-gradient(#adcabcab,#bacfc18c), var(--maple); }
 #play .wgGrid .wgCell { min-height: 0; }
-.wgPiece, .wgGrid .wgPiece {
-  border: 0; box-shadow: none; background: var(--counters) var(--team-x,0%) 33.333% / 400% 400%;
+.wgGrid .wgPiece {
+  width: 82%; border: 0; border-radius: 0; box-shadow: none;
+  background: url('./wall-go-pieces.webp') var(--team-x,0%) 0 / 400% 200% no-repeat;
+  filter: drop-shadow(0 2px 1px #20140770);
 }
-.wgP1 { --team-x: 33.333%; } .wgP2 { --team-x: 66.666%; } .wgP3 { --team-x: 100%; }
-.wgGrid .wgRound { background-position-y: 66.666%; }
-.wgSolid { --wall-mark: #b58b5e; }
-.wgWall0 { --wall-mark: #649dd5; } .wgWall1 { --wall-mark: #e4bd72; } .wgWall2 { --wall-mark: #df8a83; } .wgWall3 { --wall-mark: #75b78c; }
-.wgSolid::after { border-color: var(--wall-mark); background: var(--props) 100% 0 / 300% 300%; }
-.wgVertical.wgSolid::after { width: 168%; height: 100%; transform: rotate(90deg) scaleX(1.05) scaleY(.31); }
+.wgP1 { --team-x: 33.333%; }
+.wgP2 { --team-x: 66.666%; }
+.wgP3 { --team-x: 100%; }
+.wgGrid .wgRound { background-position-y: 100%; }
+.wgWall0 { --wall-color: #1959d3; --wall-rim: #0d275e; --wall-glint: #a1c9ff; }
+.wgWall1 { --wall-color: #f5c322; --wall-rim: #694400; --wall-glint: #fff0a3; }
+.wgWall2 { --wall-color: #e23142; --wall-rim: #721826; --wall-glint: #ffb0ae; }
+.wgWall3 { --wall-color: #188950; --wall-rim: #083f27; --wall-glint: #98e2ae; }
+.wgGrid { --wall-thickness: clamp(8px, 2.5vw, 11px); }
+.wgHorizontal::after { height: var(--wall-thickness); }
+.wgVertical::after { width: var(--wall-thickness); }
+.wgSolid::after, .wgKeySwatch {
+  background: var(--wall-color);
+  border: 1px solid var(--wall-rim);
+  box-shadow: inset 0 1px 0 var(--wall-glint), 0 1px 2px #21140870;
+}
+.wgKey { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; }
+.wgKeyTeam { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.wgKeySwatch { display: inline-block; width: 14px; height: 9px; border-radius: 2px; }
 #play .wgGrid .wgBuild { min-height: 0; }
 
 .rect span { background: linear-gradient(#fff9eb70,#fff8e890), var(--ivory); color: #241a20; }
