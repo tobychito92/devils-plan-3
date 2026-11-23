@@ -1,5 +1,5 @@
 export const roomGames = {
-  13: {size: 2}, 15: {size: 2}, 21: {size: 5, min: 2}, 28: {size: 2},
+  6: {size: 7}, 14: {size: 2}, 13: {size: 2}, 15: {size: 2}, 21: {size: 5, min: 2}, 28: {size: 2},
   30: {size: 2}, 31: {size: 2, max: 4, race: true},
   33: {size: 2, max: 4, race: true}, 34: {size: 2, max: 4, race: true},
   36: {size: 2, max: 4, race: true}, 37: {size: 7, min: 2},

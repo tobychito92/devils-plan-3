@@ -1,3 +1,4 @@
+import * as finals from './finals-rules.mjs';
 import {studyMs} from './exile-puzzles.mjs';
 import {roomGames} from './catalog.mjs';
 import {prepareGame, verifyRace} from './headless.mjs';
@@ -51,6 +52,7 @@ export class Session {
 
   view(room, seat) {
     const {game, capacity, started, seed, results} = room.session;
+    if ([6,14].includes(game)) return {game,capacity,started,seat,names:room.seats.map(p=>p.name),version:room.version,table:started?finals.visible(room.session.table):null};
     const race = Boolean(roomGames[game].race);
     return {
       game, capacity, started, race, seat, names: room.seats.map(player => player.name), version: room.version,
@@ -65,10 +67,12 @@ export class Session {
     const session = room.session;
     if (action === 'start') {
       if (seat !== 0 || room.seats.length !== session.capacity || session.started) return 'waiting';
+      if ([6,14].includes(session.game)) session.table=finals.create(session.game,Date.now(),body.adv===1?1:0);
       session.started = Date.now() + (roomGames[session.game].race ? 4000 : 0);
       return '';
     }
     if (!session.started || Date.now() < session.started) return 'waiting';
+    if ([6,14].includes(session.game)) return action==='act'&&finals.act(session.table,seat,body)?'':'move';
     if (action === 'next' && roomGames[session.game].race) {
       if(seat!==0)return 'waiting';
       if(session.game===40){

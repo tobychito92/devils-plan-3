@@ -1,3 +1,4 @@
+import {advance} from './finals-rules.mjs';
 import {roomGames} from './catalog.mjs';
 import {Session, newSession} from './room-session.mjs';
 import {DurableObject} from 'cloudflare:workers';
@@ -68,6 +69,7 @@ export class GameRoom extends DurableObject {
       if (room?.session && !Object.hasOwn(roomGames, room.session.game)) return fail('missing', 404);
       if (room) {
         const seat = room.seats.findIndex(player => player.token === body.token);
+        if (seat>=0 && room.session?.table && advance(room.session.table,Date.now())) {room.version++;await this.save(room)}
         if (action === 'state') {
           if (seat < 0) return fail('seat', 403);
           if (room.session && room.version === body.version) return json({unchanged: true});

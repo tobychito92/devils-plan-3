@@ -1,6 +1,6 @@
 import {mkdir, copyFile, cp, readFile, writeFile} from 'node:fs/promises';
 await mkdir('public/multiplayer', {recursive: true});
-for (const file of ['index.html', 'multiplayer/client.mjs', 'multiplayer/rules.mjs', 'multiplayer/catalog.mjs', 'multiplayer/exile-puzzles.mjs', 'multiplayer/plates.mjs', 'multiplayer/rooms-client.mjs']) {
+for (const file of ['index.html','finals.html','multiplayer/finals-ui.mjs','multiplayer/finals-rules.mjs', 'multiplayer/client.mjs', 'multiplayer/rules.mjs', 'multiplayer/catalog.mjs', 'multiplayer/exile-puzzles.mjs', 'multiplayer/plates.mjs', 'multiplayer/rooms-client.mjs']) {
   await copyFile(file, 'public/' + file);
 }
 await cp('art', 'public/art', {recursive: true});
