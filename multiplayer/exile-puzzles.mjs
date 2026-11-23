@@ -1,7 +1,8 @@
 import {plates} from './plates.mjs';
 export const studyMs = 120000;
-export function spotLayout(random, question) {
-  const plate = plates[(question - 1) % plates.length];
+export function spotLayout(random, previousId) {
+  const choices = plates.filter(plate=>plate.id!==previousId);
+  const plate = choices[Math.floor(random()*choices.length)];
   const order = plate.regions.map((_,i)=>i);
   for(let i=order.length-1;i>0;i--){
     const j=Math.floor(random()*(i+1));

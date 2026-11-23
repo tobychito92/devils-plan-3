@@ -78,26 +78,30 @@ function answer(game,seed,question=1) {
   const random = seededRandom(seed);
   const range = n => Array.from({length:n},(_,i)=>i);
   if (game===36) return [0,1];
-  if(game===40)return spotLayout(random,question).changes.map(region=>region.slice(0,2));
+  if(game===40)return spotLayout(random).changes.map(region=>region.slice(0,2));
   if(game===47)return assemblyLayouts(random).map(set=>set.solution);
   if (game===42) {
-    if(question===1)return [0,13,15,22];
     const cards=range(26);
     for(let i=25;i>0;i--){const j=Math.floor(random()*(i+1));[cards[i],cards[j]]=[cards[j],cards[i]]}
     return cards.slice(0,4).sort((a,b)=>a-b);
   }
   if (game===34) {
-    const grid=question===1?[[1,8,6,null,7,3,1],[3,5,2,null,4,5,8],[7,4,9,21,9,2,6],[null,null,null,null,null,null,21],[null,null,null,null,9,4,7],[null,null,null,null,2,5,3],[null,null,null,null,6,8,1]]:range(5).map(()=>range(5).map(()=>1+Math.floor(random()*7)));
-    const n=grid.length,target=question===1?20:grid[0][0]+grid[0][1];
-    let valid=0;
+    const n=5+Math.floor(random()*3);
+    const grid=range(n).map(()=>range(n).map(()=>random()<.13?null:1+Math.floor(random()*9)));
+    const totals=new Map();
     for(let y=0;y<n;y++)for(let x=0;x<n;x++)for(let b=y;b<n;b++)for(let r=x;r<n;r++){
       const cells=grid.slice(y,b+1).flatMap(row=>row.slice(x,r+1));
-      if(cells.every(Number.isInteger)&&cells.reduce((a,b)=>a+b,0)===target) valid++;
+      if(cells.every(Number.isInteger)){
+        const sum=cells.reduce((total,value)=>total+value,0);
+        totals.set(sum,(totals.get(sum)||0)+1);
+      }
     }
-    return valid;
+    const targets=[...totals].filter(([sum,count])=>sum>=10&&count>=2).map(([sum])=>sum);
+    const pool=targets.length?targets:[...totals.keys()];
+    return totals.get(pool[Math.floor(random()*pool.length)])??0;
   }
   if(game===33){
-    const n=3+question%2,h=range(n).map(()=>Array(n).fill(0));
+    const n=3+Math.floor(random()*2),h=range(n).map(()=>Array(n).fill(0));
     for(let x=n-1;x>=0;x--)for(let y=n-1;y>=0;y--){
       h[x][y]=Math.min(6,Math.max(h[x+1]?.[y]||1,h[x][y+1]||1)+Math.floor(random()*2));
     }
@@ -115,8 +119,8 @@ function answer(game,seed,question=1) {
     }
     return chosen;
   }
-  const starts=[0,4,12,20,24];
-  for(let i=4;i>0;i--){const j=Math.floor(random()*(i+1));[starts[i],starts[j]]=[starts[j],starts[i]]}
+  const starts=range(25).filter(i=>i%2===0);
+  for(let i=starts.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[starts[i],starts[j]]=[starts[j],starts[i]]}
   const adj=range(25).map(i=>range(25).filter(j=>Math.abs(i%5-j%5)*Math.abs(Math.floor(i/5)-Math.floor(j/5))===2));
   function solve(path){
     if(path.length===25)return path;

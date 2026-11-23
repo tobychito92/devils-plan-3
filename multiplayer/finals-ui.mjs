@@ -1,4 +1,4 @@
-import {create,advance,act,visible,themes} from './finals-rules.mjs?v=rules1';
+import {create,advance,act,visible,themes} from './finals-rules.mjs?v=random1';
 const $=id=>document.getElementById(id);
 const url=new URL(location.href),game=Number(url.searchParams.get('game'))===14?14:6;
 const capacity=game===6?7:2, alphabet='ABCDEFGHIJKLMNOPQRS';
@@ -42,7 +42,7 @@ function render(){
  el(box,'h2','房號 '+code);el(box,'p','你係玩家 '+(snap.seat+1)+' · 已入房 '+snap.names.length+' / '+capacity);
  const share=new URL(location.href);btn(box,'複製邀請連結',async()=>{try{await navigator.clipboard.writeText(share.href);$('error').textContent='已複製邀請連結。'}catch{$('error').textContent=share.href}});
  if(snap.seat===0){btn(box,'開始遊戲',()=>move(0,{},'start')).disabled=snap.names.length!==capacity}return}
- el(box,'h2',(s.round>10?'延長賽 ':'第 '+s.round+' 輪')+(game===6?' · '+themes[s.round-1]:' · '+s.score.join(' 比 ')));
+ el(box,'h2',(s.round>10?'延長賽 ':'第 '+s.round+' 輪')+(game===6?' · '+themes[s.theme??s.round-1]:' · '+s.score.join(' 比 ')));
  const clock=el(box,'strong','','time');clock.id='clock';updateClock(s);
  if(s.note)el(box,'p',s.note);
  if(s.phase==='done'){btn(box,'返回遊戲入口',()=>{url.searchParams.delete('room');location.href=url.href});return}

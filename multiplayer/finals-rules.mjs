@@ -23,23 +23,54 @@ for(const [q,r] of cells)for(const [x,y] of [[1,0],[0,1],[-1,1]]){
   const line=[0,1,2].map(i=>cells.findIndex(([a,b])=>a===q+i*x&&b===r+i*y));
   if(line.every(i=>i>=0))lines.push(line);
 }
-function startRound(s,now){
+// Each theme supplies seven distinct words with a known complete solution.
+const wordPools = [
+  'INDIA JAPAN BRAZIL QATAR CANADA SPAIN FINLAND IRAN LAOS PERU CHINA VIETNAM PORTUGAL KENYA GHANA EGYPT CHILE SAMOA MALTA NEPAL BHUTAN TURKEY SWEDEN NORWAY ICELAND GREECE POLAND ITALY CUBA MEXICO OMAN TOGO BENIN GABON CHAD GERMANY FRANCE JORDAN TUNISIA UGANDA',
+  'CHERRY DURIAN GRAPE AVOCADO PEAR KIWI COCONUT APPLE APRICOT BANANA DATE FIG GUAVA LEMON LIME LYCHEE MANGO MELON ORANGE PAPAYA PEACH PLUM POMELO QUINCE YUZU RAISIN OLIVE',
+  'WOLF ZEBRA GIRAFFE PENGUIN FOX BUTTERFLY PIG APE ANT BAT BEE BEAR BOAR CAT COW DOG EEL ELK EMU FLY GOAT HARE IBEX KOALA LION LYNX MOLE MOTH NEWT OWL PANDA PONY PUMA SEAL SWAN TOAD TURTLE YAK'
+].map(pool=>pool.split(' '));
+wordPools.forEach((pool,index)=>pool.forEach(word=>dict[index].add(word)));
+
+function shuffled(values, random){
+  const result=values.slice();
+  for(let i=result.length-1;i>0;i--){
+    const j=Math.floor(random()*(i+1));
+    [result[i],result[j]]=[result[j],result[i]];
+  }
+  return result;
+}
+
+function randomHexagon(random){
+  const board=Array.from({length:19},()=>1+Math.floor(random()*9));
+  const sums=new Map();
+  for(const line of lines){
+    const sum=line.reduce((total,i)=>total+board[i],0);
+    sums.set(sum,(sums.get(sum)||0)+1);
+  }
+  const targets=[...sums].filter(([,count])=>count>=2&&count<=4).map(([sum])=>sum);
+  const choices=targets.length?targets:[...sums.keys()];
+  return [...board,choices[Math.floor(random()*choices.length)]];
+}
+
+function startRound(s,now,random=Math.random){
   s.note='';s.round++;
   if(s.game===6){
     s.phase='build';s.end=now+600000;s.towers=Array(7).fill('');
-    s.bank=[...words[s.round-1].replaceAll(' ','')].sort().join('');
+    const theme=s.order?.[s.round-1]??s.round-1;
+    const selected=s.order?shuffled(wordPools[theme],random).slice(0,7):words[theme].split(' ');
+    s.bank=[...selected.join('')].sort().join('');
   }else{
-    let board=boards[s.round-1];
-    if(!board){
-      const nums=Array.from({length:19},()=>1+Math.floor(Math.random()*9));
-      board=[...nums,lines[Math.floor(Math.random()*lines.length)].reduce((v,i)=>v+nums[i],0)];
-    }
+    const board=s.randomBoards?randomHexagon(random):(boards[s.round-1]||randomHexagon(random));
     s.board=board.slice(0,19);s.target=board[19];s.found=[];s.owner=null;
     s.phase='study';s.end=now+30000;
   }
 }
-export function create(game,now=Date.now()){
-  const s={game,round:0,score:[0,0]};startRound(s,now);return s;
+export function create(game,now=Date.now(),random=Math.random){
+  const s={game,round:0,score:[0,0]};
+  if(game===6)s.order=shuffled([0,1,2],random);
+  else s.randomBoards=true;
+  startRound(s,now,random);
+  return s;
 }
 function finishRound(s){
   s.phase=s.round>=10&&s.score[0]!==s.score[1]?'done':'between';
@@ -65,7 +96,7 @@ export function act(s,seat,input,now=Date.now()){
     }else if(input.kind==='return'&&Number.isInteger(input.index)&&input.index>=0&&input.index<w.length){
       s.bank=[...s.bank,w[input.index]].sort().join('');s.towers[seat]=w.slice(0,input.index)+w.slice(input.index+1);
     }else return false;
-    if(!s.bank&&s.towers.every(w=>dict[s.round-1].has(w))){
+    if(!s.bank&&s.towers.every(w=>dict[s.order?.[s.round-1]??s.round-1].has(w))){
       s.phase=s.round===3?'done':'between';s.note=s.round===3?'挑戰完成，三輪全部成功！':'七座塔完成！';
     }
     return true;
@@ -87,6 +118,6 @@ export function act(s,seat,input,now=Date.now()){
   return false;
 }
 export function visible(s){
-  const {found,idle,board,target,...rest}=s;
-  return {...rest,...(s.phase==='study'?{board}:{}),...(['buzz','answer'].includes(s.phase)?{target}:{})};
+  const {found,idle,board,target,order,randomBoards,...rest}=s;
+  return {...rest,...(s.game===6?{theme:order?.[s.round-1]??s.round-1}:{}),...(s.phase==='study'?{board}:{}),...(['buzz','answer'].includes(s.phase)?{target}:{})};
 }

@@ -62,7 +62,7 @@
 .heavy-score{display:flex;flex-wrap:wrap;gap:5px 12px;font-size:13px}
 @media(max-width:430px){.table-tray{gap:6px}.table-card{width:38px;height:51px}.heavy-board{gap:5px}.heavy-stones .table-stone{width:23px;height:21px}}
 </style><style>.game-rules{margin:12px 0;padding:8px 12px;border:1px solid #806b54;border-radius:6px}.game-rules summary{cursor:pointer;font-weight:700;padding:4px 0}.game-rules ol{padding-inline-start:24px;margin:8px 0 4px}.game-rules li+li{margin-top:7px}.online-room-info p{margin:3px 0;font-size:14px}.online-room-info{margin-bottom:12px}#board input{max-width:100%;width:132px}</style><link rel="stylesheet" href="./art/arena.css?v=plates2"><main><header><span>THE DEVIL’S PLAN</span><span>DEAD AGAIN</span></header><section id="home"><div class="arena-hero"><h1>魔鬼的計謀</h1><p>單人挑戰・本機對戰・網上開房</p></div><div class="list" id="menu"></div><footer>非官方可玩版 · 題板重繪</footer></section><section id="play" hidden><button class="link" onclick="lobby()">‹ 所有遊戲</button><h2 id="title"></h2><button id="online-entry" hidden>網上開房／加入</button><div id="room-status" role="status" hidden></div><p id="hint"></p><details class="game-rules" id="game-rules"><summary>遊戲玩法</summary><ol></ol></details><div class="panel" id="board"></div><div id="controls" class="bar"></div><div class="msg" id="msg" role="status"></div></section></main>
-<script src="./multiplayer/how-to-play.js?v=rules1"></script><script>
+<script src="./multiplayer/how-to-play.js?v=random1"></script><script>
 const $=s=>document.getElementById(s), games=[
 [33,'數立方體','Count the Cubes','數出所有方塊，包括被遮住嘅底層。每條柱由地面疊起，中間冇空位。'],
 [34,'數長方形','Count the Rectangles','數出總和等於目標嘅長方形。正方形同單格都計，範圍唔可以跨過空位。'],
@@ -82,7 +82,7 @@ const $=s=>document.getElementById(s), games=[
 [47,'對稱拼圖','Symmetry Puzzle','用齊同色拼件砌成一個左右對稱嘅形狀。拼件可以旋轉，唔可以翻面。砌好藍、紅、綠三組先提交。'],[6,'單字塔','Word Tower','七人合作砌字'],[14,'六角形','Hexagon','雙人記憶搶答']];
 const letter=i=>String.fromCharCode(65+i), seq=n=>Array.from({length:n},(_,i)=>i);
 function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(gameRandom()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-let mode,round,timer,answer,check,finished,feedback,raceFinish,raceProof,raceStarted=0,spotTotal=0;
+let mode,round,timer,answer,check,finished,feedback,raceFinish,raceProof,raceStarted=0,spotTotal=0,lastSpotPlate;
 const online=window.onlineGame||null;
 let gameRandom=online?.random||Math.random;
 function stopRace(){if(raceFinish)clearInterval(timer);raceFinish=null;raceStarted=0;gameRandom=Math.random}
@@ -96,7 +96,7 @@ function launchRace(id,question,random,finish,startedAt){
 }
 $('menu').innerHTML=games.map(([id,name,en],i)=>({id,name,en,i})).sort((a,b)=>a.id-b.id).map(({id,name,en,i})=>'<button class="entry" onclick="start('+i+')"><img src="./art/game-'+id+'.webp'+([40,47].includes(id)?'?v=plates2':'')+'" alt="" width="372" height="500" '+(id>28?'loading="lazy"':'')+'><b>'+String(id).padStart(2,'0')+'</b><span><strong>'+name+'</strong><small>'+en+'</small></span><i>›</i></button>').join('');
 function lobby(){stopRace();window.dispatchEvent(new Event('tiger-view-exit'));clearInterval(timer);$('home').hidden=false;$('play').hidden=true}
-function start(i){if([6,14].includes(games[i][0])){location.href="./finals.html?game="+games[i][0];return}if([40,47].includes(games[i][0])&&!window.exilePuzzles){import(new URL('./multiplayer/exile-puzzles.mjs?v=plates2',document.baseURI).href).then(()=>start(i));return}mode=i;round=0;$('home').hidden=true;$('play').hidden=false;next();window.scrollTo?.(0,0)}
+function start(i){if([6,14].includes(games[i][0])){location.href="./finals.html?game="+games[i][0];return}if([40,47].includes(games[i][0])&&!window.exilePuzzles){import(new URL('./multiplayer/exile-puzzles.mjs?v=random1',document.baseURI).href).then(()=>start(i));return}mode=i;round=0;$('home').hidden=true;$('play').hidden=false;next();window.scrollTo?.(0,0)}
 function next(){if(raceFinish)return;window.dispatchEvent(new Event('tiger-view-exit'));clearInterval(timer);round++;finished=false;feedback='';$('play').dataset.game=games[mode][0];$('board').className='panel';$('title').textContent=games[mode][1];$('hint').textContent='';window.showGameRules?.(games[mode][0]);$('msg').textContent='';$('controls').innerHTML='';[cube,rect,poker,code,fence,wallGo,millCourt,fogLinks,cardForecast,ridgeEscape,signalQuestions,pokerExchange,knightTour,sumThirteen,spotDifference,symmetryPuzzle][mode]();
   const entry=$('online-entry');
   entry.hidden=!window.openGameRoom||games[mode][0]===29;
@@ -105,14 +105,27 @@ function next(){if(raceFinish)return;window.dispatchEvent(new Event('tiger-view-
 function controls(html){$('controls').innerHTML=html+'<button class="primary" id="submit" onclick="judge()">提交答案</button>'+(raceFinish?'':'<button class="link" onclick="next()">換題</button>')}
 function judge(){if(finished)return;let result=check();if(result===null)return;if(!result){$('msg').textContent=feedback||'未正確，可以再試。';return}finished=true;$('msg').textContent=feedback||'答啱！';if(raceFinish){$('controls').replaceChildren();raceFinish(raceProof);return}$('controls').innerHTML='<button class="primary" onclick="next()">下一題 ›</button>'}
 function numeric(n){if(online?.raceCheck){online.verify=proof=>proof===n?0:null;return}answer=n;controls('<label>數量 <input id="num" type="number" inputmode="numeric" min="0" step="1"></label>');$('num').onkeydown=e=>{if(e.key==='Enter')judge()};check=()=>{raceProof=Number($('num').value);return $('num').value.trim()!==''&&raceProof===n}}
-function cube(){let n=3+round%2,h=seq(n).map(()=>Array(n).fill(0)),total=0,polys='';for(let x=n-1;x>=0;x--)for(let y=n-1;y>=0;y--){h[x][y]=Math.min(6,Math.max(h[x+1]?.[y]||1,h[x][y+1]||1)+Math.floor(gameRandom()*2))}
+function cube(){let n=3+Math.floor(gameRandom()*2),h=seq(n).map(()=>Array(n).fill(0)),total=0,polys='';for(let x=n-1;x>=0;x--)for(let y=n-1;y>=0;y--){h[x][y]=Math.min(6,Math.max(h[x+1]?.[y]||1,h[x][y+1]||1)+Math.floor(gameRandom()*2))}
 function face(points,color){return '<polygon points="'+points+'" fill="'+color+'" stroke="#533527" stroke-width="1.3" stroke-linejoin="round"/>'}
 for(let d=0;d<2*n;d++)for(let x=0;x<n;x++){let y=d-x;if(y<0||y>=n)continue;total+=h[x][y];for(let z=0;z<h[x][y];z++){let a=(x-y)*25,b=(x+y)*13-z*26;let t=a+','+(b-26),r=(a+25)+','+(b-13),m=a+','+b,l=(a-25)+','+(b-13);polys+=face([l,m,a+','+(b+26),(a-25)+','+(b+13)].join(' '),'url(#cube-light)')+face([m,r,(a+25)+','+(b+13),a+','+(b+26)].join(' '),'url(#cube-dark)')+face([t,r,m,l].join(' '),'url(#cube-top)')}}
 const patterns=[['light','#bd885e',.38],['dark','#694331',.57],['top','#ffe7be',.55]].map(([side,tint,opacity])=>
   '<pattern id="cube-'+side+'" width="92" height="92" patternUnits="userSpaceOnUse"><rect width="92" height="92" fill="#c9a480"/><image href="./art/maple.webp" width="92" height="92"/><rect width="92" height="92" fill="'+tint+'" opacity="'+opacity+'"/></pattern>'
 ).join('');
 let top=-26*Math.max(...h.flat()),bottom=26*n;$('board').innerHTML='<svg aria-label="等角方塊圖" style="max-height:390px" viewBox="'+[-n*25-10,top-10,n*50+20,bottom-top+20].join(' ')+'"><defs>'+patterns+'</defs>'+polys+'</svg>';numeric(total)}
-function rect(){let g=round===1?[[1,8,6,null,7,3,1],[3,5,2,null,4,5,8],[7,4,9,21,9,2,6],[null,null,null,null,null,null,21],[null,null,null,null,9,4,7],[null,null,null,null,2,5,3],[null,null,null,null,6,8,1]]:seq(5).map(()=>seq(5).map(()=>1+Math.floor(gameRandom()*7)));let n=g.length,target=round===1?20:g[0][0]+g[0][1],count=0;for(let y=0;y<n;y++)for(let x=0;x<n;x++)for(let b=y;b<n;b++)for(let r=x;r<n;r++){let cells=g.slice(y,b+1).flatMap(row=>row.slice(x,r+1));if(!cells.includes(null)&&cells.reduce((a,b)=>a+b,0)===target)count++}
+function rect(){
+const n=5+Math.floor(gameRandom()*3);
+const g=seq(n).map(()=>seq(n).map(()=>gameRandom()<.13?null:1+Math.floor(gameRandom()*9)));
+const totals=new Map();
+for(let top=0;top<n;top++)for(let left=0;left<n;left++)for(let bottom=top;bottom<n;bottom++)for(let right=left;right<n;right++){
+  const cells=g.slice(top,bottom+1).flatMap(row=>row.slice(left,right+1));
+  if(cells.includes(null))continue;
+  const sum=cells.reduce((total,value)=>total+value,0);
+  totals.set(sum,(totals.get(sum)||0)+1);
+}
+const targets=[...totals.keys()].filter(sum=>sum>=10&&totals.get(sum)>=2);
+const choices=targets.length?targets:[...totals.keys()];
+const target=choices[Math.floor(gameRandom()*choices.length)]??1;
+const count=totals.get(target)||0;
 $('board').innerHTML='<div class="target">TARGET · '+target+'</div><div class="rect" style="grid-template-columns:repeat('+n+',1fr)">'+g.flat().map(v=>v===null?'<i></i>':'<span>'+v+'</span>').join('')+'</div>';numeric(count)}
 const suits='♠♥♦♣',rank=c=>2+c%13, suit=c=>Math.floor(c/13), card=c=>'<span class="'+([1,2].includes(suit(c))?'red':'')+'">'+('23456789TJQKA'[c%13]).replace('T','10')+suits[suit(c)]+'</span>';
 function hand(cs){let rs=cs.map(rank).sort((a,b)=>b-a),groups=[...new Set(rs)].map(v=>[rs.filter(r=>r===v).length,v]).sort((a,b)=>b[0]-a[0]||b[1]-a[1]);let flush=cs.every(c=>suit(c)===suit(cs[0])),straight=groups.length===5?(rs[0]-rs[4]===4?rs[0]:rs.join()==='14,5,4,3,2'?5:0):0;
@@ -128,9 +141,36 @@ function cover(){clearInterval(timer);hidden=true;paint();controls('<strong>選�
 paint();$('controls').innerHTML='<strong id="clock">記憶時間　20 秒</strong><button id="cover">提早冚牌</button>';$('cover').onclick=cover;let end=Date.now()+20000;timer=setInterval(()=>{let s=Math.ceil((end-Date.now())/1000);if(s<=0)cover();else $('clock').textContent='記憶時間　'+s+' 秒'},150)}
 function validIndices(proof,count,max){return Array.isArray(proof)&&proof.length===count&&new Set(proof).size===count&&proof.every(i=>Number.isInteger(i)&&i>=0&&i<max)}
 const palette=['#e4a7ec','#a9e3e3','#d2dfaa','#f4d466','#f3e6d7'],shapes=['●','▲','◆','★','■'],colors=[0,1,0,2,1,2,1,3,3,3,3,2,3,1,4,4,2,3,3,1,1,1,3,3,1,0],symbols=[0,1,1,2,3,0,1,2,3,4,1,1,4,0,4,4,0,1,4,4,2,0,0,2,3,2];
-function code(){let sel=[],target=round===1?[0,13,15,22]:shuffle(seq(26)).slice(0,4).sort((a,b)=>a-b),num=i=>i+1,distinct=(a,table)=>new Set(a.map(i=>table[i])).size,sum=a=>a.reduce((s,i)=>s+num(i),0),cs=distinct(target,colors),ss=distinct(target,symbols);
-let clues=['四張牌嘅數字總和係 '+sum(target),'一共用咗 '+cs+' 種顏色','一共用咗 '+ss+' 種圖形'];let extra;if(round===1){clues.push('第一同第四張嘅數字相乘 ≤ 50','最大同最細數字相加 ≥ 20','第三張屬於全副牌最少見嘅顏色');extra=a=>num(a[0])*num(a[3])<=50&&num(a[0])+num(a[3])>=20&&colors[a[2]]===4}else{clues.push('第四張減第二張等於 '+(target[3]-target[1]),'第一張嘅圖形係 '+shapes[symbols[target[0]]],'第三張嘅圖形係 '+shapes[symbols[target[2]]]);extra=a=>a[3]-a[1]===target[3]-target[1]&&symbols[a[0]]===symbols[target[0]]&&symbols[a[2]]===symbols[target[2]]}
-const valid=values=>validIndices(values,4,26)&&sum(values)===sum(target)&&distinct(values,colors)===cs&&distinct(values,symbols)===ss&&extra(values);
+function code(){
+const sel=[],target=shuffle(seq(26)).slice(0,4).sort((a,b)=>a-b);
+const num=i=>i+1,distinct=(a,table)=>new Set(a.map(i=>table[i])).size;
+const sum=a=>a.reduce((s,i)=>s+num(i),0);
+const clues=['四張牌嘅數字總和係 '+sum(target),'一共用咗 '+distinct(target,colors)+' 種顏色','一共用咗 '+distinct(target,symbols)+' 種圖形'];
+const facts=[
+  a=>sum(a)===sum(target),
+  a=>distinct(a,colors)===distinct(target,colors),
+  a=>distinct(a,symbols)===distinct(target,symbols)
+];
+let candidates=[];
+for(let a=0;a<23;a++)for(let b=a+1;b<24;b++)for(let c=b+1;c<25;c++)for(let d=c+1;d<26;d++){
+  const cards=[a,b,c,d];
+  if(facts.every(test=>test(cards)))candidates.push(cards);
+}
+const slots=['第一','第二','第三','第四'];
+const optional=[];
+for(let i=0;i<4;i++){
+  optional.push([slots[i]+'張嘅圖形係 '+shapes[symbols[target[i]]],a=>symbols[a[i]]===symbols[target[i]]]);
+  for(let j=i+1;j<4;j++){
+    const gap=target[j]-target[i];
+    optional.push([slots[j]+'張減'+slots[i]+'張等於 '+gap,a=>a[j]-a[i]===gap]);
+  }
+}
+for(const [label,test] of shuffle(optional)){
+  if(candidates.length===1)break;
+  const narrowed=candidates.filter(test);
+  if(narrowed.length<candidates.length){clues.push(label);facts.push(test);candidates=narrowed}
+}
+const valid=values=>validIndices(values,4,26)&&facts.every(test=>test(values));
 if(online?.raceCheck){online.verify=proof=>Array.isArray(proof)&&valid(proof.slice().sort((a,b)=>a-b))?0:null;return}
 $('board').classList.add('codepanel');$('board').innerHTML='<ol class="clues">'+clues.map(s=>'<li>'+s+'</li>').join('')+'</ol><div class="tokens">'+seq(26).map(i=>'<button class="token" style="background:'+palette[colors[i]]+'">'+letter(i)+'<br>'+num(i)+'<br><small class="seal" data-seal="'+symbols[i]+'">'+shapes[symbols[i]]+'</small></button>').join('')+'</div>';controls('<strong id="selection">— — — —</strong>');$('board').querySelectorAll('button').forEach((b,i)=>b.onclick=()=>{if(finished)return;if(sel.includes(i))sel=sel.filter(v=>v!==i);else if(sel.length<4)sel.push(i);sel.sort((a,b)=>a-b);b.classList.toggle('sel',sel.includes(i));$('selection').textContent=sel.map(letter).join(' ')+' —'.repeat(4-sel.length)});check=()=>{raceProof=[...sel];return valid(sel)}}
 function fence(){let n=10,edges=[],lookup=new Map(),cells=[],history=[];let top=seq(n).map(()=>Math.floor(gameRandom()*4)),bottom=seq(n).map(()=>6+Math.floor(gameRandom()*4)),inside=(x,y)=>x>=0&&x<n&&y>=top[x]&&y<=bottom[x];function edge(x,y,v){let a=y*(n+1)+x,b=a+(v?n+1:1),real=v?inside(x-1,y)!==inside(x,y):inside(x,y-1)!==inside(x,y);lookup.set([x,y,v].join(),edges.length);edges.push({a,b,x,y,v,real,state:0})}
@@ -1202,7 +1242,7 @@ function knightTour(){
     const dx=Math.abs(i%size-j%size),dy=Math.abs(Math.floor(i/size)-Math.floor(j/size));
     return dx*dy===2;
   }));
-  const route=[shuffle([0,4,12,20,24])[0]];
+  const route=[shuffle(points.filter(i=>i%2===0))[0]];
   if(online?.raceCheck){
     online.verify=proof=>validIndices(proof,25,25)&&proof[0]===route[0]&&proof.slice(1).every((point,i)=>edges[proof[i]].includes(point))?0:null;
     return;
@@ -1237,7 +1277,8 @@ function knightTour(){
 }
 function spotDifference(){
   const {spotLayout,spotScore,studyMs}=window.exilePuzzles;
-  const {plate,changes}=spotLayout(gameRandom,round);
+  const {plate,changes}=spotLayout(gameRandom,(raceFinish||online?.raceCheck)?undefined:lastSpotPlate);
+  if(!raceFinish&&!online?.raceCheck)lastSpotPlate=plate.id;
   if(online?.raceCheck){online.verify=proof=>spotScore(changes,proof);return}
   const marks=[], stage=document.createElement('div'), canvas=document.createElement('canvas');
   const phase=raceFinish&&window.spotPhase||1+(round-1)%3;
@@ -1417,4 +1458,4 @@ function symmetryPuzzle(){
   };
   draw();
 }
-</script><script type="module" src="./multiplayer/exile-puzzles.mjs?v=plates2"></script><script type="module" src="./multiplayer/client.mjs"></script><script type="module" src="./multiplayer/rooms-client.mjs?v=plates2"></script></html>
+</script><script type="module" src="./multiplayer/exile-puzzles.mjs?v=random1"></script><script type="module" src="./multiplayer/client.mjs"></script><script type="module" src="./multiplayer/rooms-client.mjs?v=random1"></script></html>

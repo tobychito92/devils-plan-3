@@ -1,6 +1,6 @@
 import * as finals from './finals-rules.mjs';
-import {studyMs} from './exile-puzzles.mjs';
-import {roomGames} from './catalog.mjs';
+import {spotLayout,studyMs} from './exile-puzzles.mjs';
+import {roomGames,seededRandom} from './catalog.mjs';
 import {prepareGame, verifyRace} from './headless.mjs';
 
 const hasGame = id => Number.isInteger(id) && Object.hasOwn(roomGames, id);
@@ -87,7 +87,10 @@ export class Session {
       }else if(!Object.hasOwn(session.results,seat))return 'waiting';
       session.question = (session.question || 1) + 1;
       const previous = session.seed;
-      do { session.seed = crypto.getRandomValues(new Uint32Array(1))[0]; } while (session.seed === previous);
+      const previousPlate=session.game===40?spotLayout(seededRandom(previous)).plate.id:null;
+      do {
+        session.seed=crypto.getRandomValues(new Uint32Array(1))[0];
+      } while (session.seed===previous || (previousPlate&&spotLayout(seededRandom(session.seed)).plate.id===previousPlate));
       session.results = {};
       session.started = Date.now() + 4000;
       return '';
