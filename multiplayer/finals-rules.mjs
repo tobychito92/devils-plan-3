@@ -38,8 +38,8 @@ function startRound(s,now){
     s.phase='study';s.end=now+30000;
   }
 }
-export function create(game,now=Date.now(),adv=0){
-  const s={game,round:0,score:[Number(adv===0),Number(adv===1)]};startRound(s,now);return s;
+export function create(game,now=Date.now()){
+  const s={game,round:0,score:[0,0]};startRound(s,now);return s;
 }
 function finishRound(s){
   s.phase=s.round>=10&&s.score[0]!==s.score[1]?'done':'between';
@@ -48,8 +48,7 @@ function finishRound(s){
 export function advance(s,now){
   if(now<s.end)return false;
   if(s.phase==='build'){
-    s.phase='done';const lost=s.towers.flatMap((w,i)=>dict[s.round-1].has(w)?[]:[i+1]);
-    s.note='時間到。'+(lost.length?'玩家 '+lost.join('、')+' 各交回 1 Piece。':'所有人保留 Piece。');return true;
+    s.phase='done';s.note='時間到，今輪未完成。';return true;
   }
   if(s.phase==='study'){s.phase='buzz';s.end+=90000;advance(s,now);return true}
   if(s.phase==='answer'){s.score[s.owner]--;s.note='逾時，扣 1 分';s.owner=null;s.phase='buzz';s.end=s.idle;advance(s,now);return true}
@@ -67,7 +66,7 @@ export function act(s,seat,input,now=Date.now()){
       s.bank=[...s.bank,w[input.index]].sort().join('');s.towers[seat]=w.slice(0,input.index)+w.slice(input.index+1);
     }else return false;
     if(!s.bank&&s.towers.every(w=>dict[s.round-1].has(w))){
-      s.phase=s.round===3?'done':'between';s.note=s.round===3?'三輪成功，獎金增加 ₩100,000,000！':'七座塔完成！';
+      s.phase=s.round===3?'done':'between';s.note=s.round===3?'挑戰完成，三輪全部成功！':'七座塔完成！';
     }
     return true;
   }

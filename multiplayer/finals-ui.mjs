@@ -1,4 +1,4 @@
-import {create,advance,act,visible,themes} from './finals-rules.mjs';
+import {create,advance,act,visible,themes} from './finals-rules.mjs?v=rules1';
 const $=id=>document.getElementById(id);
 const url=new URL(location.href),game=Number(url.searchParams.get('game'))===14?14:6;
 const capacity=game===6?7:2, alphabet='ABCDEFGHIJKLMNOPQRS';
@@ -7,16 +7,13 @@ const box=$('box');
 let polling=false,local,snap,code,token,mat=0,picks='',busy=false,lastPoll=0,viewKey='';
 $('title').textContent=document.title=game===6?'06 · 單字塔':'14 · 六角形';
 $('cover').src='./art/game-'+game+'.webp';
-$('rules').textContent=game===6?'七人共用一堆英文字粒。每人砌一座塔，每輪限時十分鐘。七座塔都符合主題，而且用盡字粒，先可以過關。':'兩位玩家有 30 秒記住數字。翻牌後搶答，10 秒內按直線順序報出相連三格，加埋要等於目標。答啱加一分，答錯、重複或逾時扣一分。90 秒無人搶答或搵齊答案就完一輪。';
+window.showGameRules(game);
 function el(parent,tag,label='',cls=''){const n=document.createElement(tag);n.className=cls;n.textContent=label;parent.append(n);return n}
 function btn(parent,label,fn,cls=''){const b=el(parent,'button',label,cls);b.onclick=fn;return b}
 function makeCode(){const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return [...crypto.getRandomValues(new Uint8Array(8))].map(n=>chars[n%32]).join('')}
-function advantage(parent){
- const l=el(parent,'label','Piece 較多、開局加 1 分');const sel=el(l,'select');for(const i of [0,1])sel.add(new Option('玩家 '+(i+1),i));return sel;
-}
 function lobby(){
- box.replaceChildren();const adv=game===14?advantage(box):null;
- const bar=el(box,'div','','actions');btn(bar,'同機開始',()=>{local=create(game,Date.now(),Number(adv?.value||0));render()});
+ box.replaceChildren();
+ const bar=el(box,'div','','actions');btn(bar,'同機開始',()=>{local=create(game);render()});
  btn(bar,'開連線房',()=>enter('create',makeCode()));const join=el(box,'div','','actions');
  const field=el(join,'input','','entry');field.placeholder='8 位房號';field.maxLength=8;field.value=url.searchParams.get('room')||'';field.setAttribute('aria-label','房號');
  btn(join,'加入房間',()=>enter('join',field.value.trim().toUpperCase()));
@@ -44,7 +41,7 @@ function render(){
  if(!s){if(!snap){lobby();return}
  el(box,'h2','房號 '+code);el(box,'p','你係玩家 '+(snap.seat+1)+' · 已入房 '+snap.names.length+' / '+capacity);
  const share=new URL(location.href);btn(box,'複製邀請連結',async()=>{try{await navigator.clipboard.writeText(share.href);$('error').textContent='已複製邀請連結。'}catch{$('error').textContent=share.href}});
- if(snap.seat===0){const adv=game===14?advantage(box):null;btn(box,'開始遊戲',()=>move(0,{adv:Number(adv?.value||0)},'start')).disabled=snap.names.length!==capacity}return}
+ if(snap.seat===0){btn(box,'開始遊戲',()=>move(0,{},'start')).disabled=snap.names.length!==capacity}return}
  el(box,'h2',(s.round>10?'延長賽 ':'第 '+s.round+' 輪')+(game===6?' · '+themes[s.round-1]:' · '+s.score.join(' 比 ')));
  const clock=el(box,'strong','','time');clock.id='clock';updateClock(s);
  if(s.note)el(box,'p',s.note);

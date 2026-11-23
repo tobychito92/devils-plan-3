@@ -67,7 +67,7 @@ export class Session {
     const session = room.session;
     if (action === 'start') {
       if (seat !== 0 || room.seats.length !== session.capacity || session.started) return 'waiting';
-      if ([6,14].includes(session.game)) session.table=finals.create(session.game,Date.now(),body.adv===1?1:0);
+      if ([6,14].includes(session.game)) session.table=finals.create(session.game);
       session.started = Date.now() + (roomGames[session.game].race ? 4000 : 0);
       return '';
     }
