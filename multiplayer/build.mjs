@@ -1,6 +1,6 @@
 import {mkdir, copyFile, cp, readFile, writeFile} from 'node:fs/promises';
 await mkdir('public/multiplayer', {recursive: true});
-for (const file of ['index.html', 'multiplayer/client.mjs', 'multiplayer/rules.mjs', 'multiplayer/catalog.mjs', 'multiplayer/exile-puzzles.mjs', 'multiplayer/rooms-client.mjs']) {
+for (const file of ['index.html', 'multiplayer/client.mjs', 'multiplayer/rules.mjs', 'multiplayer/catalog.mjs', 'multiplayer/rooms-client.mjs']) {
   await copyFile(file, 'public/' + file);
 }
 await cp('art', 'public/art', {recursive: true});
@@ -8,9 +8,8 @@ await cp('art', 'public/art', {recursive: true});
 const html = await readFile('index.html', 'utf8');
 const source = html.match(/<script>([\s\S]+?)<\/script>/)?.[1];
 if (!source) throw new Error('The game script is missing');
-await writeFile('multiplayer/generated-game.mjs', `import * as exilePuzzles from './exile-puzzles.mjs';
-export function runGame(document, onlineGame, id, question = 1) {
-  const window = {onlineGame, exilePuzzles, dispatchEvent() {}};
+await writeFile('multiplayer/generated-game.mjs', `export function runGame(document, onlineGame, id, question = 1) {
+  const window = {onlineGame, dispatchEvent() {}};
   const Option = class { constructor(textContent) { this.textContent = String(textContent); } };
   const clearInterval = () => {};
   ${source}

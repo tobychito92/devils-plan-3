@@ -3,8 +3,8 @@ export const roomGames = {
   30: {size: 2}, 31: {size: 2, max: 4, race: true},
   33: {size: 2, max: 4, race: true}, 34: {size: 2, max: 4, race: true},
   36: {size: 2, max: 4, race: true}, 37: {size: 7, min: 2},
-  40: {size: 2, max: 4, race: true}, 42: {size: 2, max: 4, race: true}, 44: {size: 2, max: 4, race: true},
-  47: {size: 2, max: 4, race: true}, 48: {size: 2, max: 4}
+  42: {size: 2, max: 4, race: true}, 44: {size: 2, max: 4, race: true},
+  48: {size: 2, max: 4}
 };
 export function seededRandom(seed) {
   return () => {

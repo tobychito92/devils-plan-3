@@ -32,7 +32,6 @@ export class Session {
     return {
       game, capacity, started, race, seat, names: room.seats.map(player => player.name), version: room.version,
       ...(started && race ? {seed, results, question: room.session.question || 1} : {}),
-      ...(game===40 ? {points: room.session.points || {}} : {}),
       ...(started && !race ? {screen: this.engine(room).view(seat)} : {})
     };
   }
@@ -51,7 +50,6 @@ export class Session {
       const previous = session.seed;
       do { session.seed = crypto.getRandomValues(new Uint32Array(1))[0]; } while (session.seed === previous);
       session.results = {};
-      if(session.game===40&&(session.question-1)%3===0)session.points={};
       session.started = Date.now() + 4000;
       return '';
     }
@@ -62,10 +60,6 @@ export class Session {
       const score = verifyRace(session.game, session.seed, body.proof, question);
       if (score === null) return 'move';
       session.results[seat] = {elapsed: Date.now() - session.started, score};
-      if(session.game===40){
-        session.points||={};
-        session.points[seat]=(session.points[seat]||0)+score;
-      }
       return '';
     }
     if (action !== 'act' || roomGames[session.game].race) return 'move';

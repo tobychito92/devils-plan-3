@@ -1,3 +1,4 @@
+import {roomGames} from './catalog.mjs';
 import {Session, newSession} from './room-session.mjs';
 import {DurableObject} from 'cloudflare:workers';
 import {newGame, playMove, sheep, tiger} from './rules.mjs';
@@ -64,6 +65,7 @@ export class GameRoom extends DurableObject {
     return this.ctx.blockConcurrencyWhile(async () => {
       const stored = await this.ctx.storage.get('room');
       const room = stored && stored.expires > Date.now() ? stored : null;
+      if (room?.session && !Object.hasOwn(roomGames, room.session.game)) return fail('missing', 404);
       if (room) {
         const seat = room.seats.findIndex(player => player.token === body.token);
         if (action === 'state') {

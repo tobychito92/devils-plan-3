@@ -1,4 +1,3 @@
-import {spotLayout,assemblyLayouts} from './exile-puzzles.mjs';
 import assert from 'node:assert/strict';
 import {randomBytes} from 'node:crypto';
 import {roomGames, seededRandom} from './catalog.mjs';
@@ -78,8 +77,6 @@ function answer(game,seed,question=1) {
   const random = seededRandom(seed);
   const range = n => Array.from({length:n},(_,i)=>i);
   if (game===36) return [0,1];
-  if(game===40)return spotLayout(random).changes;
-  if(game===47)return assemblyLayouts(random).map(set=>set.solution);
   if (game===42) {
     if(question===1)return [0,13,15,22];
     const cards=range(26);
@@ -135,12 +132,6 @@ for(const [id,config] of Object.entries(roomGames)){
   assert.equal(verifyRace(game,242,[]),null);
   assert.notEqual(verifyRace(game,242,answer(game,242)),null,game+' proof');
   assert.notEqual(verifyRace(game,999,answer(game,999,2),2),null,game+' second proof');
-  if(game===40||game===47){
-    const third=answer(game,781,3);
-    assert.equal(verifyRace(game,781,third,3),game===40?5:0);
-    third[0]=-1;
-    assert.equal(verifyRace(game,781,third,3),null);
-  }
   console.log('PASS race validation twice',game);
 }
 
@@ -176,7 +167,6 @@ if (process.argv[2]) {
       await send('finish',1,{version:current.version,proof:game===36?[2,3]:proof});
       const finished=await send('state',0);
       assert(finished.results[0].elapsed>=0);
-      if(game===40)assert.equal(finished.points[0],5);
       await send('next',1,{version:finished.version},409);
       const next=await send('next',0,{version:finished.version});
       assert.equal(next.question,2);
