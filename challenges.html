@@ -32,12 +32,12 @@ button:disabled{opacity:.5;cursor:default} .primary,[aria-pressed=true]{backgrou
 .history li{display:grid;grid-template-columns:minmax(65px,1fr) 3fr 54px;align-items:center;gap:8px;padding:7px;border-bottom:1px solid var(--stroke)} meter{width:100%;height:16px;accent-color:var(--jade)}
 .guess input{flex:1;min-width:120px} .guess{margin-top:10px} details{margin:14px 0}
 summary{cursor:pointer} .wordlist{margin:8px 0;max-height:150px;overflow:auto;line-height:1.8}
-</style>
+.board{grid-template-columns:repeat(15,minmax(0,1fr));gap:0;padding:8px;background:#cba36f}.cell{box-shadow:none;border-radius:0;background:linear-gradient(90deg,transparent 48%,#785a36 48% 52%,transparent 52%),linear-gradient(transparent 48%,#785a36 48% 52%,transparent 52%)}.stone{width:85%;background:radial-gradient(at 35% 25%,#62616b,#0c0b0c 70%)}.stone.ember{background:radial-gradient(at 35% 25%,white,#ded5ca 68%,#a99b91)}.tile.num{background:#c3a7eb}.hero{float:right;width:clamp(75px,21vw,148px);height:108px;object-fit:cover;border-radius:8px;margin:0 0 8px 12px}.panel{clear:both}</style>
 </head>
 <body><main>
 <a href="./">‹ 所有遊戲</a>
 <nav aria-label="挑戰選擇" id="tabs"></nav>
-<h1 id="title"></h1>
+<img id="hero" class="hero" alt=""><h1 id="title"></h1>
 <p id="episode" class="caption"></p>
 <p id="intro" class="sub"></p>
 <details><summary>遊戲玩法</summary><p id="rules"></p></details>
@@ -48,9 +48,9 @@ summary{cursor:pointer} .wordlist{margin:8px 0;max-height:150px;overflow:auto;li
 const $=id=>document.getElementById(id);
 const panel=$('game');
 const sections={
-  line:['競投連線','兩人爭落子權，先連成四粒。','輪流提名兩個橫向或直向相連嘅空格。每人每輪收 4 點，最多累積 8 點。兩邊秘密分配點數，每格出價高嗰方落子，同價落中立棋。未用嘅點數留到下一輪。橫、直、斜連四即勝。'],
-  tower:['移塔算式','搬動積木，砌出指定高度同數值。','每步可以搬一粒頂層積木去另一座塔，或者交換兩座塔嘅頂層積木。由下至上計，最低一粒只計數字，其餘積木按自己嘅符號逐步運算。任一座塔符合目標即完成。'],
-  words:['詞語溫度','輸入繁中詞語，靠相似度搵秘密詞。','電腦抽詞，或者由朋友喺同一部機秘密揀詞。每局有 12 次有效猜測。分數取決於共同語義標籤同類別，100 代表猜中。可以查看字庫、攞提示或揭曉答案。']
+  line:['點數五子棋','輪流揀三點，秘密競投棋位。','黑棋先選。每輪揀橫、直或斜線上連續三個空位。每人收 10 點，每格暗投至少 1 整點，高價落子，同價歸非選位方。餘點減半向下取整後帶入下輪。同步落完三子先判定，恰好五連先計，六連以上無效。同輪比較五連條數。'],
+  tower:['算式之塔','鬥少步報價，再親手砌出目標算式。','三人搶報步數，每人只可報一次。其餘人可報更少步，最低者獨自示範。每步可搬頂部一組積木，可反轉整組，亦可原地翻轉。指定高度、指定結果、所報步數要全部吻合。由頂向下讀，頂層必須係無符號數字，先乘後加減。首報成功加 1、失敗扣 1；後報加扣 2。塔形帶入下一題。先到 7 分完場，包尾同分加賽。'],
+  words:['隱藏詞語','保護自己嘅秘密詞，同時估中對手嘅詞。','抽籤定次序，每人獲五個普通名詞。第一輪五揀一，第二輪從餘下四個再揀。每階段出題人最多提供十個名詞線索，公開相似度，達 95% 即停，否則系統補最高相似度提示。其他人暗中作答，齊人先揭曉。每個秘密詞可花一枚 Piece 加答一次。估中者各得 1 分並結束該題。全員估錯，出題人按階段得 1、2、3 分。每題最多三階段，第二輪全部分數加倍。繁中版用本地詞庫評分。']
 };
 const order={words:[49,11],tower:[50,12],line:[51,13]};
 let active='words';
@@ -71,6 +71,7 @@ function selectGame(key){
   const [title,intro,rules]=sections[active];
   const [id,episode]=order[active];
   $('title').textContent=id+' '+title;$('episode').textContent='第 3 季・第 '+episode+' 集';$('intro').textContent=intro;$('rules').textContent=rules;
+  $('hero').src=(typeof coverData==='undefined'?'./art/game-'+id+'.webp':coverData[id]);
   document.title=title+'｜策略挑戰';tabs();
   ({line:lineLobby,tower:towerLobby,words:wordLobby})[active]();
 }
@@ -81,28 +82,26 @@ function choice(parent,label,entries){
   return select;
 }
 function shuffle(data){const copy=data.slice();for(let i=copy.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[copy[i],copy[j]]=[copy[j],copy[i]]}return copy}
-const point=i=>'ABCDEFG'[i%7]+(Math.floor(i/7)+1);
-const deepCopy=data=>JSON.parse(JSON.stringify(data));
-
-function adjacent(a,b){return Math.abs(a%7-b%7)+Math.abs(Math.floor(a/7)-Math.floor(b/7))===1}
+const N=15, directions=[[1,0],[0,1],[1,1],[-1,1]];
+const point=i=>String.fromCharCode(65+i%N)+(Math.floor(i/N)+1);
+function ray(i,dx,dy,k){
+ const x=i%N+dx*k,y=Math.floor(i/N)+dy*k;
+ return x<0||x>=N||y<0||y>=N?-1:y*N+x;
+}
 function lineWins(board,team){
-  return board.some((value,i)=>value===team&&[[1,0],[0,1],[1,1],[-1,1]].some(([dx,dy])=>{
-    const x=i%7,y=Math.floor(i/7);
-    return [1,2,3].every(step=>{
-      const col=x+step*dx,row=y+step*dy;
-      return col>=0&&col<7&&row>=0&&row<7&&board[row*7+col]===team;
-    });
-  }));
+ let count=0;
+ board.forEach((v,i)=>{if(v===team)for(const [x,y] of directions){
+ if(board[ray(i,x,y,-1)]===team)continue;
+ let n=1;while(board[ray(i,x,y,n)]===team)n++;if(n===5)count++;
+ }});return count;
 }
 function emptyPairs(board){
-  const pairs=[];
-  board.forEach((value,i)=>{
-    if(value)return;
-    for(const next of [i+1,i+7])if(board[next]===0&&adjacent(i,next))pairs.push([i,next]);
-  });
-  return pairs;
+ const out=[];
+ board.forEach((v,i)=>{if(!v)for(const [x,y] of directions){
+ const cells=[i,ray(i,x,y,1),ray(i,x,y,2)];if(cells.every(k=>board[k]===0))out.push(cells);
+ }});return out;
 }
-const duelNames=['青棋','赤棋'];
+const duelNames=['黑棋','白棋'];
 function lineLobby(){
   panel.replaceChildren();el(panel,'h2','選擇對手');
   const actions=el(panel,'div','','row actions');
@@ -110,7 +109,7 @@ function lineLobby(){
   button(actions,'同機雙人',()=>playLine(false));
 }
 function playLine(cpu){
-  const board=Array(49).fill(0),stock=[4,4];
+  const board=Array(N*N).fill(0),stock=[10,10];
   let round=1,owner=0,pair=[],offers=[],phase='pick',turn=0,note='',result='';
   function botPair(){
     const pairs=shuffle(emptyPairs(board));
@@ -124,20 +123,20 @@ function playLine(cpu){
   }
   function botBid(){
     const priority=pair.map(i=>Number(threat(i,2))*2+Number(threat(i,1)));
-    const focus=priority[0]===priority[1]?Math.floor(Math.random()*2):Number(priority[1]>priority[0]);
-    const budget=priority.some(Boolean)?stock[1]:Math.max(0,stock[1]-Math.floor(Math.random()*3));
-    const amount=Math.max(0,budget-1);
-    return focus?[budget-amount,amount]:[amount,budget-amount];
+    const bid=[1,1,1], limit=stock[1]-Math.floor(Math.random()*3);
+    const best=priority.indexOf(Math.max(...priority));
+    for(let n=3;n<limit;n++)bid[priority[best]&&Math.random()<0.7?best:Math.floor(Math.random()*3)]++;
+    return bid;
   }
   function lockBid(team,bid){
-    if(phase!=='bid'||team!==turn||bid.some(n=>!Number.isInteger(n)||n<0)||bid[0]+bid[1]>stock[team])return;
+    if(phase!=='bid'||team!==turn||bid.some(n=>!Number.isInteger(n)||n<1)||bid.reduce((a,b)=>a+b,0)>stock[team])return;
     offers[team]=bid;
     if(offers[0]&&offers[1]){
-      pair.forEach((cell,i)=>{board[cell]=offers[0][i]===offers[1][i]?3:offers[0][i]>offers[1][i]?1:2});
-      for(let i=0;i<2;i++)stock[i]-=offers[i][0]+offers[i][1];
-      note=pair.map((cell,i)=>point(cell)+' '+offers[0][i]+' 比 '+offers[1][i]+'（'+(duelNames[board[cell]-1]||'中立')+'）').join('　');
+      pair.forEach((cell,i)=>{board[cell]=offers[0][i]===offers[1][i]?2-owner:offers[0][i]>offers[1][i]?1:2});
+      for(let i=0;i<2;i++)stock[i]=Math.floor((stock[i]-offers[i].reduce((a,b)=>a+b,0))/2);
+      note=pair.map((cell,i)=>point(cell)+'（'+(duelNames[board[cell]-1]||'中立')+'）').join('　');
       const wins=[lineWins(board,1),lineWins(board,2)];
-      if(wins[0]||wins[1])result=wins[0]&&wins[1]?'兩邊同輪連四，和局。':duelNames[wins[0]?0:1]+'勝出！';
+      if(wins[0]||wins[1])result=wins[0]===wins[1]?'雙方五連條數相同，和局。':duelNames[wins[0]>wins[1]?0:1]+'勝出！';
       else if(!emptyPairs(board).length)result='無相連空格，和局。';
       phase=result?'done':'review';paint();return;
     }
@@ -147,38 +146,38 @@ function playLine(cpu){
   }
   function next(){
     round++;owner=1-owner;pair=[];offers=[];note='';
-    for(let i=0;i<2;i++)stock[i]=Math.min(8,stock[i]+4);
+    for(let i=0;i<2;i++)stock[i]=stock[i]+10;
     phase='pick';
     if(cpu&&owner===1){pair=botPair();beginBids();return}
     paint();
   }
   function paint(){
     panel.replaceChildren();const info=el(panel,'div','','stats');
-    for(const label of ['第 '+round+' 輪','青棋 '+stock[0]+' 點','赤棋 '+stock[1]+' 點'])el(info,'span',label);
-    status(result||note||(phase==='pick'?duelNames[owner]+'提名兩個相連空格。':'本輪提名 '+pair.map(point).join('、')));
-    const grid=el(panel,'div','','board');grid.setAttribute('aria-label','七乘七棋盤');
+    for(const label of ['第 '+round+' 輪',phase==='bid'?duelNames[turn]+' 可用 '+stock[turn]+' 點':'選位方：'+duelNames[owner]])el(info,'span',label);
+    status(result||note||(phase==='pick'?duelNames[owner]+'揀同一直線上連續三個空位。':'本輪提名 '+pair.map(point).join('、')));
+    const grid=el(panel,'div','','board');grid.setAttribute('aria-label','十五路棋盤');
+    const triples=phase==='pick'?emptyPairs(board):[];
     board.forEach((value,i)=>{
       const cell=button(grid,'',()=>{
-        if(pair.includes(i))pair=[];
-        else if(!pair.length)pair=[i];
-        else if(adjacent(pair[0],i))pair=[pair[0],i];
+        if(pair.includes(i))pair=pair.filter(k=>k!==i);
+        else if(triples.some(t=>[...pair,i].every(k=>t.includes(k))))pair.push(i);
         else pair=[i];
         paint();
       },'cell'+(pair.includes(i)?' selected':''));
-      cell.setAttribute('aria-label',point(i)+(value?' '+(['','青棋','赤棋','中立棋'][value]):' 空格'));
+      cell.setAttribute('aria-label',point(i)+(value?' '+(['','黑棋','白棋','中立棋'][value]):' 空格'));
       if(value)el(cell,'span','','stone '+(['','','ember','neutral'][value]));
-      cell.disabled=phase!=='pick'||!!value||!board.some((v,j)=>v===0&&adjacent(i,j));
+      cell.disabled=phase!=='pick'||!!value||!triples.some(t=>t.includes(i));
     });
     const actions=el(panel,'div','','row actions');
-    if(phase==='pick')button(actions,'確認提名',beginBids,'primary').disabled=pair.length!==2;
+    if(phase==='pick')button(actions,'確認提名',beginBids,'primary').disabled=pair.length!==3;
     if(phase==='pass')button(actions,'交畀'+duelNames[turn]+'出價',()=>{phase='bid';paint()},'primary');
     if(phase==='bid'){
       el(panel,'h3',duelNames[turn]+'暗中分配點數');
       const form=el(panel,'form');const fields=el(form,'div','','bid-grid');
-      const inputs=pair.map(i=>{const label=el(fields,'label',point(i));const input=el(label,'input');input.type='number';input.inputMode='numeric';input.value=0;input.min=0;input.max=stock[turn];input.required=true;return input});
+      const inputs=pair.map(i=>{const label=el(fields,'label',point(i));const input=el(label,'input');input.type='number';input.inputMode='numeric';input.value=1;input.min=1;input.max=stock[turn];input.required=true;return input});
       const feedback=el(form,'p','','caption');const send=el(form,'button','鎖定出價','primary');send.type='submit';
       form.onsubmit=e=>{e.preventDefault();const bid=inputs.map(i=>i.valueAsNumber);
-        if(bid[0]+bid[1]>stock[turn])feedback.textContent='兩格出價總和超過你擁有嘅點數。';
+        if(bid.reduce((a,b)=>a+b,0)>stock[turn])feedback.textContent='三格出價總和超過你擁有嘅點數。';
         else lockBid(turn,bid);
       };
     }
@@ -188,106 +187,86 @@ function playLine(cpu){
   }
   paint();
 }
-const tileSymbols={plus:'+',minus:'−',times:'×'};
-function total(stack){
-  if(!stack.length)return null;
-  let value=stack[0][1];
-  for(const [op,n] of stack.slice(1))value=op==='plus'?value+n:op==='minus'?value-n:value*n;
-  return value;
+const symbols={num:'',plus:'+',minus:'−',times:'×'};
+function towerValue(stack){
+ if(!stack.length||stack[0][0]!=='num')return null;
+ let sum=0,term=stack[0][1];
+ for(const [op,n] of stack.slice(1)){
+  if(op==='num')return null;
+  if(op==='times')term*=n;else{sum+=term;term=op==='minus'?-n:n}
+ }
+ return sum+term;
 }
-function shift(stacks,{from,to,swap}){
-  if(from===to||!stacks[from].length||(swap&&!stacks[to].length))return null;
-  const next=stacks.map(stack=>stack.slice());
-  const top=next[from].pop();
-  if(swap)next[from].push(next[to].pop());
-  next[to].push(top);return next;
+function moveTower(stacks,from,to,count,flip){
+ if(count<1||count>stacks[from].length||from===to&&(!flip||count<2))return null;
+ const next=stacks.map(s=>s.slice()),group=next[from].splice(0,count);
+ if(flip)group.reverse();next[to].unshift(...group);return next;
 }
-function searchTowers(start,limit,visit){
-  const queue=[{stacks:start,path:[]}],visited=new Set([JSON.stringify(start)]);
-  for(let i=0;i<queue.length;i++){
-    const entry=queue[i];
-    if(visit(entry)===true)return entry;
-    if(entry.path.length===limit)continue;
-    for(let from=0;from<3;from++)for(let to=0;to<3;to++)for(const swap of [false,true]){
-      if(swap&&from>to)continue;
-      const action={from,to,swap},stacks=shift(entry.stacks,action);
-      if(!stacks)continue;
-      const key=JSON.stringify(stacks);
-      if(visited.has(key))continue;
-      visited.add(key);queue.push({stacks,path:[...entry.path,action]});
-    }
+function towerGoal(stacks,last){
+ const existing=new Set(stacks.map(s=>s.length+':'+towerValue(s)));
+ function candidate(s){
+  const value=towerValue(s),key=s.length+':'+value;
+  return s.length>=2&&value!==null&&value>0&&value<300&&!existing.has(key)&&key!==last?{value,height:s.length,key}:null;
+ }
+ for(let trial=0;trial<2000;trial++){
+  let state=stacks;
+  for(let j=0;j<8;j++){
+   const from=shuffle([0,1,2,3]).find(i=>state[i].length),to=Math.floor(Math.random()*4);
+   state=moveTower(state,from,to,1+Math.floor(Math.random()*state[from].length),Math.random()<.5)||state;
+   for(const s of state){const goal=candidate(s);if(goal)return goal}
   }
-  return null;
+ }
+ // Any chosen pair can be exposed using the spare towers.
+ const tiles=stacks.flat();for(const n of tiles.filter(t=>t[0]==='num'))for(const op of tiles){const goal=candidate([n,op]);if(goal)return goal}
+ throw Error('未能產生下一題');
 }
-function matchesTower(stacks,goal){return stacks.some(stack=>stack.length===goal.height&&total(stack)===goal.value)}
-function makeTowerPuzzle(depth){
-  for(let retry=0;retry<24;retry++){
-    const tiles=shuffle([['plus',1],['plus',2],['plus',4],['plus',6],['minus',2],['minus',4],['times',2],['times',3]]);
-    const start=[tiles.slice(0,3),tiles.slice(3,6),tiles.slice(6)];
-    const seenGoals=new Set(),choices=[];
-    searchTowers(start,depth,({stacks,path})=>{
-      for(const stack of stacks){
-        const height=stack.length,value=total(stack),key=height+':'+value;
-        if(height<3||height>6||value<1||value>99||seenGoals.has(key))continue;
-        seenGoals.add(key);
-        if(path.length===depth)choices.push({height,value});
-      }
-    });
-    if(choices.length)return {start,goal:shuffle(choices)[0],depth};
-  }
-  throw Error('未能抽到新題，請再試。');
-}
-const towerName=i=>'ABC'[i]+' 塔';
 function towerLobby(){
-  panel.replaceChildren();el(panel,'h2','揀題目難度');
-  const actions=el(panel,'div','','row actions');
-  for(const [depth,label] of [[1,'入門'],[2,'普通'],[3,'進階'],[4,'高手']])button(actions,label,()=>startTower(depth),depth===2?'primary':'');
+ panel.replaceChildren();el(panel,'h2','三人同機搶答');
+ button(panel,'開局',towerMatch,'primary');
 }
-function startTower(depth,previous){
-  let puzzle;
-  try{for(let i=0;i<5;i++){puzzle=makeTowerPuzzle(depth);if(JSON.stringify(puzzle)!==previous)break}}
-  catch(error){towerLobby();status(error.message);return}
-  const {start,goal}=puzzle;
-  let stacks=start,history=[],source=-1,swap=false,done=false,note='';
-  function paint(){
-    panel.replaceChildren();
-    const stats=el(panel,'div','','stats');
-    el(stats,'span','目標 '+goal.value+' · '+goal.height+' 層').className='goal';
-    el(stats,'span','已用 '+history.length+' 步');el(stats,'span','最少 '+depth+' 步');
-    status(done?'完成！你用咗 '+history.length+' 步。':note||(source===-1?'揀一座塔，再揀目的塔。':towerName(source)+'已選，請揀目的塔。'));
-    const mode=el(panel,'div','','row');
-    for(const [useSwap,label] of [[false,'搬頂層'],[true,'交換頂層']]){
-      const item=button(mode,label,()=>{swap=useSwap;source=-1;note='';paint()});
-      item.setAttribute('aria-pressed',String(swap===useSwap));item.disabled=done;
-    }
-    const towers=el(panel,'div','','towers');
-    stacks.forEach((stack,i)=>{
-      const tower=button(towers,'',()=>{
-        if(source===-1){source=i;note='';paint();return}
-        if(source===i){source=-1;note='';paint();return}
-        const next=shift(stacks,{from:source,to:i,swap});
-        if(!next)return;
-        history.push(stacks);stacks=next;source=-1;note='';done=matchesTower(stacks,goal);paint();
-      },'tower');
-      tower.disabled=done||(source===-1||swap)&&!stack.length;
-      tower.setAttribute('aria-pressed',String(source===i));
-      tower.setAttribute('aria-label',towerName(i)+'，'+stack.length+' 層，總值 '+(total(stack)??'空'));
-      for(let j=stack.length-1;j>=0;j--){const [op,n]=stack[j];el(tower,'span',tileSymbols[op]+n,'tile '+op)}
-      el(tower,'span',towerName(i)+' · '+(total(stack)??'空'));
-    });
-    el(panel,'p','積木上嘅符號會跟住搬。最低一層嘅符號暫時唔計。','caption');
-    const actions=el(panel,'div','','row actions');
-    button(actions,'上一步',()=>{stacks=history.pop();done=false;source=-1;note='';paint()}).disabled=!history.length;
-    button(actions,'提示',()=>{
-      const answer=searchTowers(stacks,5,({stacks:state})=>matchesTower(state,goal));
-      const step=answer?.path[0];note=step?(step.swap?'交換 ':'將 ')+towerName(step.from)+(step.swap?'同':'頂層搬去 ')+towerName(step.to)+(step.swap?'頂層。':'。'):'五步內搵唔到解法。可以復原幾步再試。';
-      paint();
-    }).disabled=done;
-    button(actions,'重置',()=>{stacks=start;history=[];done=false;source=-1;note='';paint()});
-    button(actions,'下一題',()=>startTower(depth,JSON.stringify(puzzle)),'primary');
-    button(actions,'揀難度',towerLobby);
-  }
-  paint();
+function towerMatch(){
+ let stacks=[[['num',2],['plus',3],['times',2]],[['num',3],['minus',2],['times',5]],[['num',5],['plus',7],['times',3]],[['num',7],['minus',3],['plus',5]]];
+ let scores=[0,0,0],eligible=[0,1,2],tie=false,round=0,goal,lead,bids,moves,phase,msg,chosen=-1;
+ const name=i=>'玩家 '+(i+1);
+ function start(){round++;goal=towerGoal(stacks,goal?.key);lead=null;bids=new Set();moves=0;phase='bid';msg='';chosen=-1;paint()}
+ function finish(ok){
+  const pts=(lead.first?1:2)*(ok?1:-1);scores[lead.i]+=pts;msg=name(lead.i)+(ok?' 示範成功，':' 示範失敗，')+(pts>0?'+':'')+pts+' 分。';phase='result';
+  if(Math.max(...eligible.map(i=>scores[i]))>=7){
+   const low=Math.min(...eligible.map(i=>scores[i])),bottom=eligible.filter(i=>scores[i]===low);
+   if(bottom.length<2){phase='end';msg+=' 包尾：'+name(bottom[0])}
+   else{eligible=bottom;tie=true;msg+=' 包尾同分，進入加賽。'}
+  }paint()
+ }
+ function paint(){
+  panel.replaceChildren();el(panel,'h2',(tie?'加賽':'第 '+round+' 題')+' · 目標 '+goal.value+' ／ '+goal.height+' 層');
+  el(panel,'p',scores.map((s,i)=>name(i)+' '+s+' 分').join('　'));
+  const towers=el(panel,'div','','towers');towers.style.gridTemplateColumns='repeat(4,minmax(0,1fr))';
+  stacks.forEach((s,i)=>{const col=el(towers,'div','','tower');el(col,'small','ABCD'[i]+' 塔');for(const [op,n] of s)el(col,'span',symbols[op]+n,'tile '+op)});
+  status(msg);
+  if(phase==='bid'){
+   if(lead)el(panel,'p',name(lead.i)+' 報 '+lead.n+' 步，其餘玩家可搶報更少步。');
+   const bidders=eligible.filter(i=>!bids.has(i));
+   if(bidders.length&&(!lead||lead.n>1)){
+    const who=choice(panel,'搶答者',bidders.map(i=>[i,name(i)]));
+    const field=el(panel,'input');field.type='number';field.min=1;field.placeholder='報幾多步';field.setAttribute('aria-label','步數');
+    button(panel,'鎖定步數',()=>{const n=field.valueAsNumber;if(!Number.isInteger(n)||n<1||lead&&n>=lead.n){field.setCustomValidity('請報有效而更少嘅正整數');field.reportValidity();field.setCustomValidity('');return}
+     lead={i:+who.value,n,first:!lead};bids.add(lead.i);paint()});
+   }
+   if(lead)button(panel,'結束搶答，開始示範',()=>{phase='move';paint()},'primary');else button(panel,'無人搶答，跳題',start);
+  }else if(phase==='move'){
+   el(panel,'p',name(lead.i)+' 示範 · '+moves+' / '+lead.n+' 步');
+   const ids=[0,1,2,3],from=choice(panel,'由',ids.filter(i=>stacks[i].length).map(i=>[i,'ABCD'[i]]));
+   if(chosen>=0&&stacks[chosen].length)from.value=chosen;
+   from.onchange=()=>{chosen=+from.value;paint()};
+   const count=choice(panel,'頂部層數',stacks[+from.value].map((_,i)=>[i+1,i+1]));
+   const to=choice(panel,'移到',ids.map(i=>[i,'ABCD'[i]]));to.value=(+from.value+1)%4;
+   const flip=choice(panel,'方向',[[0,'保持'],[1,'上下反轉']]);
+   button(panel,'確認一步',()=>{const next=moveTower(stacks,+from.value,+to.value,+count.value,+flip.value);if(!next){msg='原地要翻轉至少兩層。';paint();return}
+    stacks=next;moves++;chosen=-1;msg='';if(moves===lead.n)finish(stacks.some(s=>s.length===goal.height&&towerValue(s)===goal.value));else paint()},'primary');
+   button(panel,'放棄示範',()=>finish(false));
+  }else button(panel,phase==='end'?'重新開局':'下一題',phase==='end'?towerMatch:start,'primary');
+ }
+ start()
 }
 const vocabulary={
   '飲食':{
@@ -343,69 +322,67 @@ function similarity(guess,secret){
   return Math.min(96,Math.round((sameGroup?20:3)+(sameGroup?79:75)*ratio));
 }
 function wordLobby(){
-  panel.replaceChildren();el(panel,'h2','揀出題方式');
-  el(panel,'p',wordIndex.size+' 個繁中詞語，支援常見香港同台灣用詞。','caption');
-  const actions=el(panel,'div','','row actions');
-  button(actions,'隨機出題',()=>startWords(),'primary');
-  button(actions,'同機朋友出題',wordHost);
+ panel.replaceChildren();el(panel,'h2','同機傳機玩');
+ const count=choice(panel,'玩家人數',[2,3,4,5,6].map(n=>[n,n+' 人']));
+ el(panel,'p','每人輸入自己開局持有嘅 Piece 數，提交後交機。','caption');
+ button(panel,'抽籤開局',()=>wordMatch(+count.value),'primary')
 }
-let lastWord='';
-function wordHost(){
-  panel.replaceChildren();el(panel,'h2','出題者秘密揀詞');
-  const form=el(panel,'form','','row actions');
-  const options=choice(form,'秘密詞語',[['','請揀一個詞語'],...[...wordIndex.keys()].map(word=>[word,word])]);options.required=true;
-  const send=el(form,'button','鎖定答案','primary');send.type='submit';
-  form.onsubmit=e=>{
-    e.preventDefault();const secret=options.value;if(!wordIndex.has(secret))return;
-    panel.replaceChildren();el(panel,'p','交部機畀估詞嗰位，準備好先開始。');
-    button(panel,'開始估詞',()=>startWords(secret),'primary');
-  };
-  button(panel,'返回選擇',wordLobby);
-}
-function startWords(secret=shuffle([...wordIndex.keys()].filter(word=>word!==lastWord))[0]){
-  lastWord=secret;
-  let history=[],finished=false,result='',hint=false;
-  function guess(raw,feedback){
-    const word=normalize(raw);
-    if(!wordIndex.has(word)){feedback.textContent='字庫暫時未收錄呢個詞，唔扣次數。';return false}
-    if(history.some(entry=>entry.word===word)){feedback.textContent='呢個詞已經估過，唔扣次數。';return false}
-    const score=similarity(word,secret);history.push({word,score});
-    if(score===100){finished=true;result='猜中！答案係「'+secret+'」。'}
-    else if(history.length===12){finished=true;result='次數用完。答案係「'+secret+'」。'}
-    return true;
-  }
-  function paint(focus=false){
-    panel.replaceChildren();const stats=el(panel,'div','','stats');
-    el(stats,'span','剩餘 '+(12-history.length)+' 次');
-    if(hint)el(stats,'span','類別 '+wordIndex.get(secret).group);
-    status(result||'分數越高，詞義越接近。');
-    if(!finished){
-      const form=el(panel,'form','','row guess');
-      const input=el(form,'input');input.type='text';input.placeholder='輸入一個詞語';input.required=true;input.autocomplete='off';input.setAttribute('aria-label','猜測詞語');
-      const submit=el(form,'button','提交','primary');submit.type='submit';
-      const feedback=el(panel,'p','','caption');feedback.setAttribute('role','status');
-      form.onsubmit=e=>{e.preventDefault();if(!finished&&guess(input.value,feedback))paint(true)};
-      if(focus)input.focus();
-    }
-    if(history.length){
-      const list=el(panel,'ol','','history');list.setAttribute('aria-label','猜測紀錄，由高分至低分');
-      history.slice().sort((a,b)=>b.score-a.score).forEach(({word,score})=>{
-        const row=el(list,'li');el(row,'strong',word);
-        const meter=el(row,'meter');meter.max=100;meter.value=score;meter.setAttribute('aria-label',word+'相似度');
-        el(row,'span',score+'／100');
-      });
-    }
-    const actions=el(panel,'div','','row actions');
-    if(!finished){
-      button(actions,'提示類別',()=>{hint=true;paint()}).disabled=hint;
-      button(actions,'揭曉答案',()=>{finished=true;result='答案係「'+secret+'」。';paint()});
-    }
-    button(actions,'下一個隨機詞',()=>startWords(),finished?'primary':'');
-    button(actions,'返回選擇',wordLobby);
-    const words=el(panel,'details');el(words,'summary','查看可輸入嘅詞語');
-    el(words,'p',[...wordIndex.keys()].join('、'),'wordlist');
-  }
-  paint();
+function wordMatch(count){
+ const pool=shuffle([...wordIndex.keys()]),players=shuffle(Array.from({length:count},(_,i)=>({name:'玩家 '+(i+1),hand:pool.splice(0,5),score:0,pieces:0})));
+ let round=1,setterIndex=0,stage=1,clues=[],attempt=0,answers=[],spent=new Set(),selected=0;
+ const setter=()=>players[setterIndex];
+ function clear(title){panel.replaceChildren();el(panel,'h2',title)}
+ function pass(player,action){
+  clear('請交機畀'+player.name);button(panel,'我係'+player.name+'，繼續',action,'primary');
+ }
+ function chooseSecret(){
+  const p=players[selected];pass(p,()=>{clear(p.name+' · 第 '+round+' 輪揀秘密詞');
+   const select=choice(panel,'信封',p.hand.map(w=>[w,w]));
+   let pieces;if(round===1){pieces=el(panel,'input');pieces.type='number';pieces.min=0;pieces.value=0;pieces.setAttribute('aria-label','持有 Piece 數');el(panel,'small','開局持有 Piece 數')}
+   button(panel,'封存秘密詞',()=>{if(pieces){if(!Number.isSafeInteger(pieces.valueAsNumber)||pieces.valueAsNumber<0)return; p.pieces=pieces.valueAsNumber}
+    p.secret=select.value;p.hand=p.hand.filter(w=>w!==p.secret);if(++selected<count)chooseSecret();else beginWord()},'primary');
+  })
+ }
+ function beginWord(){stage=1;clues=[];spent=new Set();beginStage()}
+ function beginStage(){attempt=0;answers=[];pass(setter(),clueForm)}
+ function history(){for(const c of clues)el(panel,'p','第 '+c.stage+' 階段 · '+c.word+'　'+c.score+'%'+(c.auto?'（自動線索）':''))}
+ function clueForm(){
+  const p=setter();clear(p.name+' 出線索 · 第 '+stage+' 階段');el(panel,'p','你嘅秘密詞：'+p.secret);history();
+  const remaining=[...wordIndex.keys()].filter(w=>w!==p.secret&&!clues.some(c=>c.word===w));
+  const pick=choice(panel,'第 '+(attempt+1)+' 個線索',remaining.sort((a,b)=>a.localeCompare(b,'zh-HK')).map(w=>[w,w]));
+  button(panel,'公開線索',()=>{const word=pick.value,score=similarity(word,p.secret);clues.push({word,score,stage});attempt++;
+   if(score<95&&attempt===10){
+    const best=remaining.filter(w=>w!==word).sort((a,b)=>similarity(b,p.secret)-similarity(a,p.secret))[0];
+    if(best)clues.push({word:best,score:similarity(best,p.secret),stage,auto:true});
+   }
+   clear('公開線索');history();
+   if(score>=95||attempt===10)button(panel,'開始秘密作答',()=>ask(0),'primary');
+   else button(panel,'下一個線索',()=>pass(p,clueForm),'primary')
+  },'primary');
+ }
+ function ask(i){
+  if(i===count){reveal();return}if(i===setterIndex){ask(i+1);return}
+  const p=players[i];pass(p,()=>{clear(p.name+' 秘密作答');history();
+   const a=el(panel,'input');a.placeholder='你估嘅名詞';let b;
+   if(p.pieces>0&&!spent.has(i)){b=el(panel,'input');b.placeholder='加答（花 1 Piece，可留空）'}
+   button(panel,'鎖定答案',()=>{const word=normalize(a.value);if(!word)return;
+    const extra=b&&normalize(b.value);if(extra&&extra!==word){spent.add(i);p.pieces--}
+    answers.push({i,words:extra&&extra!==word?[word,extra]:[word]});ask(i+1)},'primary')
+  })
+ }
+ function reveal(){
+  const p=setter(),correct=answers.filter(a=>a.words.includes(p.secret)),ended=correct.length>0||stage===3;
+  clear('同步揭曉');for(const a of answers)el(panel,'p',players[a.i].name+'：'+a.words.join('、'));
+  if(correct.length){for(const a of correct)players[a.i].score+=round;status(correct.map(a=>players[a.i].name).join('、')+' 猜中，各得 '+round+' 分。')}
+  else{p.score+=round*stage;status('無人估中，'+p.name+' 得 '+round*stage+' 分。')}
+  if(ended)el(panel,'h3','秘密詞：'+p.secret);
+  button(panel,ended?'繼續':'下一階段',()=>{if(!ended){stage++;beginStage();return}
+   if(++setterIndex<count){beginWord();return}
+   if(round===1){round=2;players.splice(0,players.length,...shuffle(players));selected=0;setterIndex=0;chooseSecret();return}
+   clear('最終排名');players.slice().sort((a,b)=>b.score-a.score).forEach(p=>el(panel,'p',p.name+'　'+p.score+' 分'));button(panel,'再開一局',wordLobby)
+  },'primary')
+ }
+ chooseSecret()
 }
 selectGame(document.documentElement.dataset.game||new URLSearchParams(location.search).get('game'));
 </script>

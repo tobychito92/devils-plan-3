@@ -103,13 +103,13 @@ const episodes={
 };
 const catalogue=games.map(([id,name,en],i)=>({id,name,en,i}));
 catalogue.push(
-  {id:49,name:'詞語溫度',en:'Word Similarity',challenge:'words'},
-  {id:50,name:'移塔算式',en:'Tower Arithmetic',challenge:'tower'},
-  {id:51,name:'競投連線',en:'Bid for Four',challenge:'line'}
+  {id:49,name:'隱藏詞語',en:'Hidden Word',challenge:'words'},
+  {id:50,name:'算式之塔',en:'Tower of Equations',challenge:'tower'},
+  {id:51,name:'點數五子棋',en:'Point Gomoku',challenge:'line'}
 );
 function catalogueCard({id,name,en,i,challenge}){
   const open=challenge?'openCatalogueChallenge(&quot;'+challenge+'&quot;)':'start('+i+')';
-  const cover=challenge?'':'<img src="'+'./art/game-'+id+'.webp'+([40,47].includes(id)?'?v=plates2':'')+'" alt="" width="372" height="500" '+(id>28?'loading="lazy"':'')+'>';
+  const cover='<img src="'+'./art/game-'+id+'.webp'+([40,47].includes(id)?'?v=plates2':'')+'" alt="" width="372" height="500" '+(id>28?'loading="lazy"':'')+'>';
   return '<button type="button" class="entry'+(challenge?' entry-challenge':'')+'" onclick="'+open+'">'+cover+
     '<b>'+String(id).padStart(2,'0')+'</b><span><strong>'+name+'</strong><small>第 '+episodes[id][1]+' 集</small><br><small>'+en+'</small></span><i aria-hidden="true">›</i></button>';
 }

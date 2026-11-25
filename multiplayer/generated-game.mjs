@@ -1,0 +1,1445 @@
+import * as exilePuzzles from './exile-puzzles.mjs';
+export function runGame(document, onlineGame, id, question = 1) {
+  const window = {onlineGame, exilePuzzles, dispatchEvent() {}};
+  const Option = class { constructor(textContent) { this.textContent = String(textContent); } };
+  const clearInterval = () => {};
+  
+const $=s=>document.getElementById(s), games=[
+[33,'數立方體','Count the Cubes','數出所有方塊，包括被遮住嘅底層。每條柱由地面疊起，中間冇空位。'],
+[34,'數長方形','Count the Rectangles','數出總和等於目標嘅長方形。正方形同單格都計，範圍唔可以跨過空位。'],
+[36,'記憶撲克','Memory Poker','記住 16 張牌嘅位置。20 秒後揭開三張公牌，揀兩個位置組成最強五張牌。'],
+[42,'秘密密碼','Secret Code','揀四張同時符合全部線索嘅牌，系統會按字母次序排列。'],
+[44,'環形圍欄','Loop Fence Puzzle','點兩個黑點之間嘅邊，依次切換線、交叉記號、留白。每格數字代表四邊嘅線數，所有線要連成一個圈。'],
+[48,'圍牆圍棋 II','Wall Go II','揀人數開局。方棋直行一至兩格；圓棋行一格後可以轉彎再行一格。行完直接撳棋格旁邊亮起嘅牆槽。領地分隔後計格數，同分鬥最大單幅領地。'],
+[13,'九子棋','Nine Men’s Morris','本機雙人。每方九粒棋，輪流放滿後沿線移動。三粒成線可食一粒對手棋，優先食未成線嘅棋。剩三粒可以飛去任何空點，剩兩粒或無棋可行就輸。'],
+[15,'盲五子棋','Blind Gomoku','本機雙人。棋色平時隱藏，此版本每六步揭示一次。橫、直或斜連五粒即勝。'],
+[28,'猜大小','Big and Small','輪流出暗牌同押大小。暗牌大過莊家就賺差額，押中亦可贏籌碼。'],
+[29,'虎羊棋','Bagh-Chal','本機雙人。四隻虎對二十隻羊，羊方先逐隻放棋，放完先可移動。虎沿線跳過一隻羊可以捕獲，捕五隻就贏。羊方困住四隻虎就贏。'],
+[30,'問題與真相','Question & Truth','本機雙人，各自秘密排八張牌。暗投代幣爭取提問或猜對手嘅牌序。'],
+[21,'狙擊撲克','Sniper Hold’em','兩輪下注後，可以狙擊指定牌型。最強未被狙擊嘅牌贏彩池，交回 75 籌碼晉級。'],
+[31,'騎士巡遊','Knight’s Tour','行日字步，走遍 5×5 棋盤，每格只可踏一次。㩒亮起嘅格移動，可以退步或睇提示。'],
+[37,'Heavy 13','Heavy 13','秘密揀重量同顏色籌碼。令任何一磅到 13 或以上就會受罰。14 輪後罰分最多嘅兩位出局。'],
+[40,'找不同','Spot the Difference','先記住原相，再喺改動相上標記五處變化。每組三回合，每處答啱得一分。'],
+[47,'對稱拼圖','Symmetry Puzzle','用齊同色拼件砌成一個左右對稱嘅形狀。拼件可以旋轉，唔可以翻面。砌好藍、紅、綠三組先提交。'],[6,'單字塔','Word Tower','七人合作砌字'],[14,'六角形','Hexagon','雙人記憶搶答']];
+const letter=i=>String.fromCharCode(65+i), seq=n=>Array.from({length:n},(_,i)=>i);
+function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(gameRandom()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+let mode,round,timer,answer,check,finished,feedback,raceFinish,raceProof,raceStarted=0,spotTotal=0,spotHistory=[];
+const online=window.onlineGame||null;
+let gameRandom=online?.random||Math.random;
+function stopRace(){if(raceFinish)clearInterval(timer);raceFinish=null;raceStarted=0;gameRandom=Math.random}
+function onlineGameLabel(id){return games.find(game=>game[0]===id)?.[1]}
+function onlineGameView(id){$('play').dataset.game=id;clearInterval(timer);$('online-entry').hidden=true;mode=games.findIndex(game=>game[0]===id);$('home').hidden=true;$('play').hidden=false;$('title').textContent=games[mode][1];$('hint').textContent=games[mode][3]}
+function launchRace(id,question,random,finish,startedAt){
+  stopRace();onlineGameView(id);round=question;finished=false;feedback='';raceProof=null;
+  raceFinish=finish;raceStarted=startedAt;gameRandom=random;
+  $('board').className='panel';$('controls').replaceChildren();$('msg').textContent='';
+  ({31:knightTour,33:cube,34:rect,36:poker,40:spotDifference,42:code,44:fence,47:symmetryPuzzle})[id]();
+}
+const openCatalogueChallenge=key=>location.href='./challenges.html?game='+key;
+const episodes={
+  6:[1,6],15:[1,11],13:[1,12],14:[1,12],
+  31:[2,5],21:[2,6],28:[2,12],29:[2,12],30:[2,12],
+  33:[3,1],34:[3,1],36:[3,2],37:[3,2],40:[3,6],
+  42:[3,7],44:[3,8],47:[3,10],48:[3,10],49:[3,11],50:[3,12],51:[3,13]
+};
+const catalogue=games.map(([id,name,en],i)=>({id,name,en,i}));
+catalogue.push(
+  {id:49,name:'隱藏詞語',en:'Hidden Word',challenge:'words'},
+  {id:50,name:'算式之塔',en:'Tower of Equations',challenge:'tower'},
+  {id:51,name:'點數五子棋',en:'Point Gomoku',challenge:'line'}
+);
+function catalogueCard({id,name,en,i,challenge}){
+  const open=challenge?'openCatalogueChallenge(&quot;'+challenge+'&quot;)':'start('+i+')';
+  const cover='<img src="'+'./art/game-'+id+'.webp'+([40,47].includes(id)?'?v=plates2':'')+'" alt="" width="372" height="500" '+(id>28?'loading="lazy"':'')+'>';
+  return '<button type="button" class="entry'+(challenge?' entry-challenge':'')+'" onclick="'+open+'">'+cover+
+    '<b>'+String(id).padStart(2,'0')+'</b><span><strong>'+name+'</strong><small>第 '+episodes[id][1]+' 集</small><br><small>'+en+'</small></span><i aria-hidden="true">›</i></button>';
+}
+$('menu').innerHTML=[1,2,3].map(season=>{
+  const entries=catalogue.filter(({id})=>episodes[id][0]===season)
+    .sort((a,b)=>episodes[a.id][1]-episodes[b.id][1]||a.id-b.id);
+  return '<section class="season-section" aria-labelledby="season-'+season+'"><h2 id="season-'+season+'">第 '+season+' 季</h2><div class="list">'+entries.map(catalogueCard).join('')+'</div></section>';
+}).join('');
+
+function lobby(){stopRace();window.dispatchEvent(new Event('tiger-view-exit'));clearInterval(timer);$('home').hidden=false;$('play').hidden=true}
+function start(i){if([6,14].includes(games[i][0])){location.href="./finals.html?game="+games[i][0];return}if([40,47].includes(games[i][0])&&!window.exilePuzzles){import(new URL('./multiplayer/exile-puzzles.mjs?v=scenes20',document.baseURI).href).then(()=>start(i));return}mode=i;round=0;$('home').hidden=true;$('play').hidden=false;next();window.scrollTo?.(0,0)}
+function next(){if(raceFinish)return;window.dispatchEvent(new Event('tiger-view-exit'));clearInterval(timer);round++;finished=false;feedback='';$('play').dataset.game=games[mode][0];$('board').className='panel';$('title').textContent=games[mode][1];$('hint').textContent='';window.showGameRules?.(games[mode][0]);$('msg').textContent='';$('controls').innerHTML='';[cube,rect,poker,code,fence,wallGo,millCourt,fogLinks,cardForecast,ridgeEscape,signalQuestions,pokerExchange,knightTour,sumThirteen,spotDifference,symmetryPuzzle][mode]();
+  const entry=$('online-entry');
+  entry.hidden=!window.openGameRoom||games[mode][0]===29;
+  entry.onclick=()=>window.openGameRoom(games[mode][0]);
+}
+function controls(html){$('controls').innerHTML=html+'<button class="primary" id="submit" onclick="judge()">提交答案</button>'+(raceFinish?'':'<button class="link" onclick="next()">換題</button>')}
+function judge(){if(finished)return;let result=check();if(result===null)return;if(!result){$('msg').textContent=feedback||'未正確，可以再試。';return}finished=true;$('msg').textContent=feedback||'答啱！';if(raceFinish){$('controls').replaceChildren();raceFinish(raceProof);return}$('controls').innerHTML='<button class="primary" onclick="next()">下一題 ›</button>'}
+function numeric(n){if(online?.raceCheck){online.verify=proof=>proof===n?0:null;return}answer=n;controls('<label>數量 <input id="num" type="number" inputmode="numeric" min="0" step="1"></label>');$('num').onkeydown=e=>{if(e.key==='Enter')judge()};check=()=>{raceProof=Number($('num').value);return $('num').value.trim()!==''&&raceProof===n}}
+function cube(){let n=3+Math.floor(gameRandom()*2),h=seq(n).map(()=>Array(n).fill(0)),total=0,polys='';for(let x=n-1;x>=0;x--)for(let y=n-1;y>=0;y--){h[x][y]=Math.min(6,Math.max(h[x+1]?.[y]||1,h[x][y+1]||1)+Math.floor(gameRandom()*2))}
+function face(points,color){return '<polygon points="'+points+'" fill="'+color+'" stroke="#533527" stroke-width="1.3" stroke-linejoin="round"/>'}
+for(let d=0;d<2*n;d++)for(let x=0;x<n;x++){let y=d-x;if(y<0||y>=n)continue;total+=h[x][y];for(let z=0;z<h[x][y];z++){let a=(x-y)*25,b=(x+y)*13-z*26;let t=a+','+(b-26),r=(a+25)+','+(b-13),m=a+','+b,l=(a-25)+','+(b-13);polys+=face([l,m,a+','+(b+26),(a-25)+','+(b+13)].join(' '),'url(#cube-light)')+face([m,r,(a+25)+','+(b+13),a+','+(b+26)].join(' '),'url(#cube-dark)')+face([t,r,m,l].join(' '),'url(#cube-top)')}}
+const patterns=[['light','#bd885e',.38],['dark','#694331',.57],['top','#ffe7be',.55]].map(([side,tint,opacity])=>
+  '<pattern id="cube-'+side+'" width="92" height="92" patternUnits="userSpaceOnUse"><rect width="92" height="92" fill="#c9a480"/><image href="./art/maple.webp" width="92" height="92"/><rect width="92" height="92" fill="'+tint+'" opacity="'+opacity+'"/></pattern>'
+).join('');
+let top=-26*Math.max(...h.flat()),bottom=26*n;$('board').innerHTML='<svg aria-label="等角方塊圖" style="max-height:390px" viewBox="'+[-n*25-10,top-10,n*50+20,bottom-top+20].join(' ')+'"><defs>'+patterns+'</defs>'+polys+'</svg>';numeric(total)}
+function rect(){
+const n=5+Math.floor(gameRandom()*3);
+const g=seq(n).map(()=>seq(n).map(()=>gameRandom()<.13?null:1+Math.floor(gameRandom()*9)));
+const totals=new Map();
+for(let top=0;top<n;top++)for(let left=0;left<n;left++)for(let bottom=top;bottom<n;bottom++)for(let right=left;right<n;right++){
+  const cells=g.slice(top,bottom+1).flatMap(row=>row.slice(left,right+1));
+  if(cells.includes(null))continue;
+  const sum=cells.reduce((total,value)=>total+value,0);
+  totals.set(sum,(totals.get(sum)||0)+1);
+}
+const targets=[...totals.keys()].filter(sum=>sum>=10&&totals.get(sum)>=2);
+const choices=targets.length?targets:[...totals.keys()];
+const target=choices[Math.floor(gameRandom()*choices.length)]??1;
+const count=totals.get(target)||0;
+$('board').innerHTML='<div class="target">TARGET · '+target+'</div><div class="rect" style="grid-template-columns:repeat('+n+',1fr)">'+g.flat().map(v=>v===null?'<i></i>':'<span>'+v+'</span>').join('')+'</div>';numeric(count)}
+const suits='♠♥♦♣',rank=c=>2+c%13, suit=c=>Math.floor(c/13), card=c=>'<span class="'+([1,2].includes(suit(c))?'red':'')+'">'+('23456789TJQKA'[c%13]).replace('T','10')+suits[suit(c)]+'</span>';
+function hand(cs){let rs=cs.map(rank).sort((a,b)=>b-a),groups=[...new Set(rs)].map(v=>[rs.filter(r=>r===v).length,v]).sort((a,b)=>b[0]-a[0]||b[1]-a[1]);let flush=cs.every(c=>suit(c)===suit(cs[0])),straight=groups.length===5?(rs[0]-rs[4]===4?rs[0]:rs.join()==='14,5,4,3,2'?5:0):0;
+let kind=flush&&straight?8:groups[0][0]===4?7:groups[0][0]===3&&groups[1][0]===2?6:flush?5:straight?4:groups[0][0]===3?3:groups[1][0]===2?2:groups[0][0]===2?1:0;
+let tie=straight?[straight]:groups.map(g=>g[1]);return [kind,...seq(5).map(i=>tie[i]||0)].reduce((a,b)=>a*15+b,0)}
+function poker(){let deck=shuffle(seq(52)),pool=deck.slice(0,16),community=deck.slice(16,19),sel=[],hidden=false,best=-1,pair,kind=['高牌','一對','兩對','三條','順子','同花','葫蘆','四條','同花順'];for(let i=0;i<15;i++)for(let j=i+1;j<16;j++){let v=hand([...community,pool[i],pool[j]]);if(v>best){best=v;pair=[i,j]}}
+if(online?.raceCheck){
+  online.verify=proof=>validIndices(proof,2,pool.length)?hand([...community,...proof.map(i=>pool[i])]):null;
+  return;
+}
+function paint(show=false){$('board').innerHTML='<div class="cards">'+pool.map((c,i)=>'<button class="card '+(hidden&&!show?'back ':'')+(sel.includes(i)?'sel':'')+'" data-i="'+i+'">'+(hidden&&!show?letter(i):card(c))+'</button>').join('')+'</div>'+(hidden?'<div class="community">公牌　'+community.map(card).join('　')+'</div>':'');$('board').querySelectorAll('button').forEach((b,i)=>b.onclick=()=>{if(!hidden||finished)return;if(sel.includes(i))sel=sel.filter(j=>j!==i);else if(sel.length<2)sel.push(i);paint()})}
+function cover(){clearInterval(timer);hidden=true;paint();controls('<strong>選擇兩個位置</strong>');check=()=>{if(sel.length!==2){$('msg').textContent='請先揀兩個位置。';return null}let value=hand([...community,...sel.map(i=>pool[i])]);raceProof=[...sel];feedback=(value===best?'最佳組合！':'今次未達最佳。')+' 你揀到'+kind[Math.floor(value/15**5)]+'；最佳例子 '+pair.map(letter).join('、')+'（'+kind[Math.floor(best/15**5)]+'）。';paint(true);return true}}
+paint();$('controls').innerHTML='<strong id="clock">記憶時間　20 秒</strong><button id="cover">提早冚牌</button>';$('cover').onclick=cover;let end=Date.now()+20000;timer=setInterval(()=>{let s=Math.ceil((end-Date.now())/1000);if(s<=0)cover();else $('clock').textContent='記憶時間　'+s+' 秒'},150)}
+function validIndices(proof,count,max){return Array.isArray(proof)&&proof.length===count&&new Set(proof).size===count&&proof.every(i=>Number.isInteger(i)&&i>=0&&i<max)}
+const palette=['#e4a7ec','#a9e3e3','#d2dfaa','#f4d466','#f3e6d7'],shapes=['●','▲','◆','★','■'],colors=[0,1,0,2,1,2,1,3,3,3,3,2,3,1,4,4,2,3,3,1,1,1,3,3,1,0],symbols=[0,1,1,2,3,0,1,2,3,4,1,1,4,0,4,4,0,1,4,4,2,0,0,2,3,2];
+function code(){
+const sel=[],target=shuffle(seq(26)).slice(0,4).sort((a,b)=>a-b);
+const num=i=>i+1,distinct=(a,table)=>new Set(a.map(i=>table[i])).size;
+const sum=a=>a.reduce((s,i)=>s+num(i),0);
+const clues=['四張牌嘅數字總和係 '+sum(target),'一共用咗 '+distinct(target,colors)+' 種顏色','一共用咗 '+distinct(target,symbols)+' 種圖形'];
+const facts=[
+  a=>sum(a)===sum(target),
+  a=>distinct(a,colors)===distinct(target,colors),
+  a=>distinct(a,symbols)===distinct(target,symbols)
+];
+let candidates=[];
+for(let a=0;a<23;a++)for(let b=a+1;b<24;b++)for(let c=b+1;c<25;c++)for(let d=c+1;d<26;d++){
+  const cards=[a,b,c,d];
+  if(facts.every(test=>test(cards)))candidates.push(cards);
+}
+const slots=['第一','第二','第三','第四'];
+const optional=[];
+for(let i=0;i<4;i++){
+  optional.push([slots[i]+'張嘅圖形係 '+shapes[symbols[target[i]]],a=>symbols[a[i]]===symbols[target[i]]]);
+  for(let j=i+1;j<4;j++){
+    const gap=target[j]-target[i];
+    optional.push([slots[j]+'張減'+slots[i]+'張等於 '+gap,a=>a[j]-a[i]===gap]);
+  }
+}
+for(const [label,test] of shuffle(optional)){
+  if(candidates.length===1)break;
+  const narrowed=candidates.filter(test);
+  if(narrowed.length<candidates.length){clues.push(label);facts.push(test);candidates=narrowed}
+}
+const valid=values=>validIndices(values,4,26)&&facts.every(test=>test(values));
+if(online?.raceCheck){online.verify=proof=>Array.isArray(proof)&&valid(proof.slice().sort((a,b)=>a-b))?0:null;return}
+$('board').classList.add('codepanel');$('board').innerHTML='<ol class="clues">'+clues.map(s=>'<li>'+s+'</li>').join('')+'</ol><div class="tokens">'+seq(26).map(i=>'<button class="token" style="background:'+palette[colors[i]]+'">'+letter(i)+'<br>'+num(i)+'<br><small class="seal" data-seal="'+symbols[i]+'">'+shapes[symbols[i]]+'</small></button>').join('')+'</div>';controls('<strong id="selection">— — — —</strong>');$('board').querySelectorAll('button').forEach((b,i)=>b.onclick=()=>{if(finished)return;if(sel.includes(i))sel.splice(sel.indexOf(i),1);else if(sel.length<4)sel.push(i);sel.sort((a,b)=>a-b);b.classList.toggle('sel',sel.includes(i));$('selection').textContent=sel.map(letter).join(' ')+' —'.repeat(4-sel.length)});check=()=>{raceProof=[...sel];return valid(sel)}}
+function fence(){let n=10,edges=[],lookup=new Map(),cells=[],history=[];let top=seq(n).map(()=>Math.floor(gameRandom()*4)),bottom=seq(n).map(()=>6+Math.floor(gameRandom()*4)),inside=(x,y)=>x>=0&&x<n&&y>=top[x]&&y<=bottom[x];function edge(x,y,v){let a=y*(n+1)+x,b=a+(v?n+1:1),real=v?inside(x-1,y)!==inside(x,y):inside(x,y-1)!==inside(x,y);lookup.set([x,y,v].join(),edges.length);edges.push({a,b,x,y,v,real,state:0})}
+for(let y=0;y<=n;y++)for(let x=0;x<=n;x++){if(x<n)edge(x,y,0);if(y<n)edge(x,y,1)}
+for(let y=0;y<n;y++)for(let x=0;x<n;x++){let ids=[[x,y,0],[x,y,1],[x+1,y,1],[x,y+1,0]].map(k=>lookup.get(k.join()));cells.push({x,y,ids,clue:gameRandom()<.15?null:ids.filter(i=>edges[i].real).length})}
+function validLoop(proof){
+  if(!Array.isArray(proof)||!proof.length||!validIndices(proof,proof.length,edges.length))return false;
+  const chosen=new Set(proof);
+  if(cells.some(c=>c.clue!==null&&c.ids.filter(i=>chosen.has(i)).length!==c.clue)){feedback='仲有數字同四邊嘅線數未吻合。';return false}
+  const graph=new Map();
+  for(const i of proof){const {a,b}=edges[i];for(const [from,to] of [[a,b],[b,a]]){if(!graph.has(from))graph.set(from,[]);graph.get(from).push(to)}}
+  if([...graph.values()].some(list=>list.length!==2)){feedback='檢查斷口同分叉，每個經過嘅點都要連兩條線。';return false}
+  const visited=new Set(),stack=[graph.keys().next().value];
+  while(stack.length){const a=stack.pop();if(!visited.has(a)){visited.add(a);stack.push(...graph.get(a))}}
+  const valid=visited.size===graph.size;
+  feedback=valid?'完成！所有提示吻合，而且只有一個閉環。':'而家有多過一個圈。';
+  return valid;
+}
+if(online?.raceCheck){online.verify=proof=>validLoop(proof)?0:null;return}
+function paint(){let graphic='';for(let c of cells)if(c.clue!==null)graphic+='<text x="'+(c.x+.5)+'" y="'+(c.y+.68)+'" text-anchor="middle" font-size=".53" font-family="Georgia" fill="#3c3230">'+c.clue+'</text>';
+for(let e of edges){let x2=e.x+(e.v?0:1),y2=e.y+(e.v?1:0);graphic+='<path d="M'+e.x+' '+e.y+'L'+x2+' '+y2+'" stroke="'+(e.state===1?'#844033':'#ccc4b2')+'" stroke-width="'+(e.state===1?'.12':'.025')+'"/>';if(e.state===2)graphic+='<text x="'+((e.x+x2)/2)+'" y="'+((e.y+y2)/2+.13)+'" text-anchor="middle" font-size=".45" fill="#8a7766">×</text>'}
+for(let y=0;y<=n;y++)for(let x=0;x<=n;x++)graphic+='<circle cx="'+x+'" cy="'+y+'" r=".07" fill="#342c27"/>';
+$('board').innerHTML='<svg class="fence" viewBox="-.45 -.45 10.9 10.9" aria-label="十乘十圍欄棋盤">'+graphic+'</svg>';let svg=$('board').firstChild;svg.onclick=ev=>{if(finished)return;let p=new DOMPoint(ev.clientX,ev.clientY).matrixTransform(svg.getScreenCTM().inverse());let mx=Math.round(p.x),my=Math.round(p.y),v=+(Math.abs(p.x-mx)<Math.abs(p.y-my)),id=lookup.get([v?mx:Math.floor(p.x),v?Math.floor(p.y):my,v].join());if(id===undefined)return;history.push(id);edges[id].state=(edges[id].state+1)%3;paint()}}
+paint();controls('<button id="undo">復原一步</button>');$('undo').onclick=()=>{let id=history.pop();if(id!==undefined){edges[id].state=(edges[id].state+2)%3;paint()}};
+check=()=>{raceProof=edges.flatMap((edge,i)=>edge.state===1?[i]:[]);return validLoop(raceProof)};
+}
+function wallGo(){
+  if(online){wallMatch(online.count,true);return}
+  $('board').innerHTML='<div class="wgSetup"><strong>對局人數</strong><div id="wgModes"></div><label><input type="checkbox" id="wgLocal"> 同一部機輪流玩</label></div>';
+  $('msg').textContent='單人玩時，其餘位置由電腦控制。';
+  for(const n of [2,3,4]){
+    const b=document.createElement('button');b.textContent=['二人決鬥','三人局','四人延伸局'][n-2];
+    b.onclick=()=>wallMatch(n,$('wgLocal').checked);$('wgModes').append(b);
+  }
+}
+function wallMatch(count,local){
+  const players=seq(count),colors=['藍','黃','紅','綠'];
+  const names=players.map(o=>(local?'玩家 '+(o+1):o?'電腦':'你')+'・'+colors[o]);
+  const duel=count===2;
+  $('hint').textContent=(duel?'二人決鬥。每方兩圓兩方，圓棋預置，輪流放方棋，全局不可拆牆。':(count===4?'四人延伸局。':'三人局。')+'每方一圓一方，每人有一次拆牆機會。')+' 方棋直行一至兩格，圓棋行一格後可以轉彎再行一格。行完直接撳亮起嘅牆槽。';
+  const N=7, cells=seq(49), dirs=['上','右','下','左'];
+  const neighbors=cells.map(i=>[i>=N?i-N:-1,i%N<6?i+1:-1,i<42?i+N:-1,i%N?i-1:-1]);
+  const key=(i,j)=>Math.min(i,j)*49+Math.max(i,j);
+  const walls=new Set(), pieces=[], breaker=players.map(()=>!duel), order=[...players,...players.slice().reverse()], wallOwner=new Map();
+  let turn=0, pick=-1, shape=0, pending=null, choices=[], phase='place', options=[], passes=0;
+  let placed=0;
+  if(duel)for(const [o,i] of [[0,8],[0,40],[1,12],[1,36]])pieces.push({i,o,s:1});
+  const at=i=>pieces.find(p=>p.i===i);
+  const coord=i=>'ABCDEFG'[i%N]+(1+Math.floor(i/N));
+  const token=p=>p.s?'圓':'方';
+  function moves(owner){
+    const result=[];
+    for(const p of pieces.filter(p=>p.o===owner)){
+      function step(i,d,broken,depth){
+        const j=neighbors[i][d];
+        if(j<0||at(j))return;
+        const edge=key(i,j);
+        if(walls.has(edge)){
+          if(!breaker[owner]||broken!==null)return;
+          broken=edge;
+        }
+        result.push({p,to:j,broken});
+        if(depth===1)for(const nd of p.s?[(d+1)%4,(d+3)%4]:[d])step(j,nd,broken,2);
+      }
+      dirs.forEach((_,d)=>step(p.i,d,null,1));
+    }
+    return result.filter((m,i)=>result.findIndex(n=>n.p===m.p&&n.to===m.to&&n.broken===m.broken)===i);
+  }
+  function areas(){
+    const seen=new Set(),points=Array(count).fill(0),largest=Array(count).fill(0),owner=[],mixedPieces=[];
+    for(const i of cells){
+      if(seen.has(i))continue;
+      const group=[i],inside=[];seen.add(i);
+      for(const j of group){
+        if(at(j))inside.push(at(j));
+        for(const k of neighbors[j])if(k>=0&&!seen.has(k)&&!walls.has(key(j,k))){seen.add(k);group.push(k)}
+      }
+      const teams=new Set(inside.map(p=>p.o));
+      if(teams.size>1)mixedPieces.push(...inside);
+      if(teams.size===1){
+        const o=inside[0].o;points[o]+=group.length;largest[o]=Math.max(largest[o],group.length);
+        group.forEach(k=>owner[k]=o);
+      }
+    }
+    return {points,largest,owner,mixedPieces};
+  }
+  function wallDirs(m){return neighbors[m.to].map((j,d)=>j>=0&&(!walls.has(key(m.to,j))||key(m.to,j)===m.broken)?d:-1).filter(d=>d>=0)}
+  function finish(a){
+    phase='end';
+    for(const p of a.mixedPieces){a.points[p.o]++;a.largest[p.o]=Math.max(1,a.largest[p.o]);a.owner[p.i]=p.o}
+    const rank=players.slice().sort((x,y)=>a.points[y]-a.points[x]||a.largest[y]-a.largest[x]);
+    const winners=rank.filter(x=>a.points[x]===a.points[rank[0]]&&a.largest[x]===a.largest[rank[0]]);
+    render(a.owner);$('msg').textContent=winners.map(i=>names[i]).join('、')+' 勝出！ '+rank.map(i=>names[i]+' '+a.points[i]+' 格（最大 '+a.largest[i]+'）').join(' ｜ ');
+  }
+  function commit(m,d){
+    if(m.broken!==null){walls.delete(m.broken);wallOwner.delete(m.broken);breaker[turn]=false}
+    m.p.i=m.to;const edge=key(m.to,neighbors[m.to][d]);walls.add(edge);wallOwner.set(edge,turn);passes=0;
+    pending=null;pick=-1;choices=[];turn=(turn+1)%count;advance();
+  }
+  function botMove(){
+    let best=-Infinity,choice;
+    for(const m of options){
+      const old=m.p.i; m.p.i=m.to;
+      for(const d of wallDirs(m)){
+        if(m.broken!==null)walls.delete(m.broken);
+        const e=key(m.to,neighbors[m.to][d]);walls.add(e);
+        const a=areas(),dist=players.slice().map(o=>{
+          const ds=Array(49).fill(99),q=pieces.filter(p=>p.o===o).map(p=>p.i);
+          q.forEach(i=>ds[i]=0);
+          for(const i of q)for(const j of neighbors[i])if(j>=0&&ds[j]===99&&!walls.has(key(i,j))){ds[j]=ds[i]+1;q.push(j)}
+          return ds;
+        });
+        const others=players.slice().filter(o=>o!==turn);
+        let v=2*a.points[turn]-Math.max(...others.map(o=>a.points[o]))-(m.broken!==null?2:0)+gameRandom()*.35;
+        for(const i of cells)if(dist[turn][i]<Math.min(...others.map(o=>dist[o][i])))v++;
+        walls.delete(e);if(m.broken!==null)walls.add(m.broken);
+        if(v>best){best=v;choice=[m,d]}
+      }
+      m.p.i=old;
+    }
+    commit(...choice);
+  }
+  function place(i){
+    pieces.push({i,o:turn,s:shape});
+    if(++placed===order.length){turn=0;advance();return}
+    turn=order[placed];const first=pieces.find(p=>p.o===turn);shape=duel?0:first?1-first.s:0;
+    render();schedule();
+  }
+  function schedule(){
+    if(local||!turn||phase==='end')return;
+    timer=setTimeout(()=>{
+      if(phase==='place'){
+        const free=cells.filter(i=>!at(i));
+        if(!pieces.some(p=>p.o===turn))shape=+(gameRandom()<.5);
+        const ranked=free.map(i=>[i,gameRandom()*3+Math.min(4,...pieces.map(p=>Math.abs(i%7-p.i%7)+Math.abs((i/7|0)-(p.i/7|0))))]);
+        place(ranked.sort((a,b)=>b[1]-a[1])[0][0]);
+      }else botMove();
+    },350);
+  }
+  function advance(){
+    phase='move';const a=areas();if(!a.mixedPieces.length){finish(a);return}
+    options=moves(turn);
+    if(!options.length){if(++passes===count){finish(a);return}turn=(turn+1)%count;advance();return}
+    render();schedule();
+  }
+  function button(label,fn){const b=document.createElement('button');b.textContent=label;b.onclick=fn;$('controls').append(b)}
+  function render(territory=[]){
+    const placing=phase==='place',end=phase==='end',human=(local||turn===0)&&!end;
+    const own=options.filter(m=>m.p.i===pick);
+    if(online)online.focus(turn,false,end);
+    const top=tableText($('board'),end?'終局':names[turn]+(placing?'　佈棋':'　行棋'),'div');
+    top.className='wgTop';
+    const grid=document.createElement('div');grid.className='wgGrid';
+    const keyLabel=document.createElement('div');keyLabel.className='wgKey';
+    names.forEach((name,team)=>{
+      const label=tableText(keyLabel,name,'span');
+      label.className='wgKeyTeam';
+      const swatch=document.createElement('span');
+      swatch.className='wgKeySwatch wgWall'+team;
+      swatch.setAttribute('aria-hidden','true');
+      label.prepend(swatch);
+    });
+    $('board').replaceChildren(top,grid,keyLabel);
+    for(const i of cells){
+      const p=pending&&i===pending.to?pending.p:pending&&i===pending.p.i?null:at(i);
+      const b=document.createElement('button');b.className='wgCell';b.setAttribute('aria-label',coord(i)+(p?' '+names[p.o]+token(p)+'棋':''));
+      if(territory[i]!=null)b.classList.add('wgLand'+territory[i]);
+      if(p)b.innerHTML='<span class="wgPiece wgP'+p.o+(p.s?' wgRound':'')+'"></span>';
+      if(i===pick&&!pending||pending?.to===i)b.classList.add('wgSel');
+      if(human&&!pending&&!choices.length&&own.some(m=>m.to===i)){b.classList.add('wgDest');b.textContent=own.some(m=>m.to===i&&m.broken===null)?'•':'⚒'}
+      b.disabled=!human||(placing?!!p:!!pending||!!choices.length||!(p?.o===turn&&options.some(m=>m.p===p)||own.some(m=>m.to===i)));
+      b.onclick=()=>{
+        if(placing){place(i);return}
+        if(p){pick=p.i;render();return}
+        const routes=own.filter(m=>m.to===i);
+        if(routes.length===1)pending=routes[0];else choices=routes;
+        render();
+      };grid.append(b);
+    }
+    function edgeMarker(i,d,team,active){
+      const horizontal=d%2===0;
+      const el=document.createElement(active?'button':'span');
+      el.className='wgEdge '+(horizontal?'wgHorizontal':'wgVertical')+' '+(active?'wgBuild':'wgSolid wgWall'+team);
+      const x=i%7+(d===1?1:d===3?0:.5), y=Math.floor(i/7)+(d===2?1:d===0?0:.5);
+      el.style.left=(x*100/7)+'%';el.style.top=(y*100/7)+'%';
+      if(active){el.setAttribute('aria-label',coord(i)+' 築'+dirs[d]+'牆');el.onclick=()=>commit(pending,d)}
+      grid.append(el);
+    }
+    for(const [edge,o] of wallOwner){
+      if(edge===pending?.broken)continue;
+      const i=Math.floor(edge/49),j=edge%49;
+      edgeMarker(i,j===i+1?1:2,o,false);
+    }
+    if(human&&pending)wallDirs(pending).forEach(d=>edgeMarker(pending.to,d,turn,true));
+    $('controls').innerHTML='';
+    $('msg').textContent=end?'':!human?'電腦諗緊下一步…':placing?'點空格放低你嘅'+(shape?'圓':'方')+'棋。':pending?'直接撳棋子旁邊亮起嘅牆槽築牆。':choices.length?'揀移動路線。':pick<0?'點選你想移動嘅棋子。':'點亮起嘅格行棋。鎚仔代表要用一次拆牆。';
+    if(human&&placing&&!duel&&!pieces.some(p=>p.o===turn))button('改放'+(shape?'方':'圓')+'棋',()=>{shape=1-shape;render()});
+    if(human&&choices.length)choices.forEach(m=>button(m.broken===null?'沿通道行':'拆 '+coord(Math.floor(m.broken/49))+'–'+coord(m.broken%49)+' 之間嘅牆',()=>{pending=m;choices=[];render()}));
+
+    if(human&&(pending||choices.length))button('重新揀步',()=>{pending=null;choices=[];render()});
+    if(end&&!online){button('再玩一局',()=>wallMatch(count,local));button('揀對局人數',next)}
+  }
+  render();
+}
+
+function challengeButton(parent,label,action,active=true){
+  const button=document.createElement('button');
+  button.textContent=label;
+  button.disabled=!active;
+  button.onclick=action;
+  parent.append(button);
+  return button;
+}
+function challengeStatus(text,ended=false){
+  $('msg').textContent=text;
+  $('controls').innerHTML='';
+  if(ended&&!online&&!raceFinish)challengeButton($('controls'),'再玩一局',next);
+}
+function challengeGrid(size,content,active,select){
+  $('board').innerHTML='';
+  const grid=document.createElement('div');
+  grid.className='challengeGrid';
+  grid.style.setProperty('--columns',size);
+  for(const i of seq(size*size)){
+    const piece=content(i);
+    const button=challengeButton(grid,piece,()=>select(i),active(i));
+    if(['●','◆','◉','♞'].includes(piece))button.dataset.piece=piece;
+    button.setAttribute('aria-label',String.fromCharCode(65+i%size)+(1+Math.floor(i/size))+' '+content(i));
+  }
+  $('board').append(grid);
+}
+function orthogonal(i,n){
+  return [i%n>0?i-1:-1,i%n<n-1?i+1:-1,i-n,i+n].filter(j=>j>=0&&j<n*n);
+}
+function pointBoard(n,points,edges,content,active,select){
+  const board=document.createElement('div');
+  board.className='pointBoard';
+  const pos=i=>[7+86*(i%n)/(n-1),7+86*Math.floor(i/n)/(n-1)];
+  for(const [a,b] of edges){
+    const [x,y]=pos(a),[u,v]=pos(b);
+    const line=document.createElement('span');
+    line.className='pointLine';
+    Object.assign(line.style,{left:x+'%',top:y+'%',width:Math.hypot(u-x,v-y)+'%',transform:'rotate('+Math.atan2(v-y,u-x)+'rad)'});
+    board.append(line);
+  }
+  for(const i of points){
+    const button=challengeButton(board,content(i),()=>select(i),active(i));
+    button.className='pointStone';
+    button.dataset.piece=content(i);
+    const [x,y]=pos(i);
+    button.style.left=x+'%';
+    button.style.top=y+'%';
+    button.setAttribute('aria-label',String.fromCharCode(65+i%n)+(1+Math.floor(i/n))+' '+content(i));
+  }
+  $('board').replaceChildren(board);
+}
+function millCourt(){
+  const size=7,board=Array(49).fill(0),marks=['','●','◆'],stock=[0,9,9];
+  const mills=[
+    [0,3,6],[8,10,12],[16,17,18],[21,22,23],[25,26,27],[30,31,32],[36,38,40],[42,45,48],
+    [0,21,42],[8,22,36],[16,23,30],[3,10,17],[31,38,45],[18,25,32],[12,26,40],[6,27,48]
+  ];
+  const points=[...new Set(mills.flat())].sort((a,b)=>a-b);
+  const edges=mills.flatMap(([a,b,c])=>[[a,b],[b,c]]);
+  let turn=1,selected=-1,take=false,outcome='',quiet=0,removed=false;
+  const other=()=>3-turn;
+  const placing=()=>stock[1]+stock[2]>0;
+  const inMill=(i,player)=>mills.some(line=>line.includes(i)&&line.every(j=>board[j]===player));
+  function destinations(i){
+    return points.filter(j=>!board[j]&&(board.filter(x=>x===turn).length===3||
+      edges.some(([a,b])=>a===i&&b===j||a===j&&b===i)));
+  }
+  function advance(){
+    const wasPlacing=placing();
+    selected=-1;take=false;turn=other();
+    if(board.filter(x=>x===turn).length+stock[turn]<3||
+      !placing()&&!points.some(i=>board[i]===turn&&destinations(i).length))outcome=marks[other()]+' 勝出';
+    else if(!wasPlacing){
+      quiet=removed?0:quiet+1;
+      if(quiet>=100)outcome='連續 100 步無食子，和局';
+    }
+    removed=false;render();
+  }
+  function active(i){
+    if(outcome)return false;
+    if(take)return board[i]===other()&&(!inMill(i,other())||
+      !points.some(j=>board[j]===other()&&!inMill(j,other())));
+    if(placing())return !board[i];
+    return board[i]===turn&&!!destinations(i).length||selected>=0&&destinations(selected).includes(i);
+  }
+  function play(i){
+    if(take){board[i]=0;removed=true;advance();return}
+    if(board[i]===turn){selected=selected===i?-1:i;render();return}
+    if(placing())stock[turn]--;else board[selected]=0;
+    board[i]=turn;
+    if(inMill(i,turn)&&board.includes(other())){take=true;render()}else advance();
+  }
+  function render(){
+    if(online)online.focus(turn-1,false,!!outcome);
+    pointBoard(size,points,edges,i=>marks[board[i]],active,play);
+    if(selected>=0)$('board').firstChild.querySelectorAll('button')[points.indexOf(selected)].classList.add('challengeSelected');
+    challengeStatus(outcome||marks[turn]+'　'+(take?'揀一粒對手棋移除':placing()?'放棋（尚餘 '+stock[turn]+' 粒）':selected<0?'揀棋移動':'揀空點'),!!outcome);
+  }
+  render();
+}
+function fogLinks(){
+  const n=9,board=Array(n*n).fill(0),marks=['','●','◆'];
+  let turn=1,moves=0,winner=0,revealed=false;
+  function play(i){
+    board[i]=turn;moves++;
+    const r=(i/n)|0,c=i%n;
+    for(const [dr,dc] of [[1,0],[0,1],[1,1],[1,-1]]){
+      let chain=1;
+      for(const side of [-1,1])for(let d=1;d<5;d++){
+        const row=r+dr*d*side,col=c+dc*d*side;
+        if(row<0||row>=n||col<0||col>=n||board[row*n+col]!==turn)break;
+        chain++;
+      }
+      if(chain>=5){winner=turn;break}
+    }
+    if(!winner&&moves<n*n){turn=3-turn;revealed=moves%6===0}
+    render();
+  }
+  function render(){
+    const done=!!winner||moves===n*n;
+    if(online)online.focus(turn-1,false,done);
+    challengeGrid(n,i=>done||revealed?marks[board[i]]:board[i]?'◉':'',i=>!done&&!revealed&&!board[i],play);
+    challengeStatus(done?(winner?marks[winner]+' 五連勝出':'滿盤平手'):revealed?'全盤揭示。記住棋子位置。':marks[turn]+' 落子　｜　第 '+(moves+1)+' 步',done);
+    if(revealed&&!done)challengeButton($('controls'),'收起棋色，繼續',()=>{revealed=false;render()});
+  }
+  render();
+}
+function openTigerInvite(){start(games.findIndex(game=>game[0]===29));window.ridgeOnline()}
+function ridgeEscape(){
+  const n=5,points=seq(25),board=Array(25).fill('');
+  const edges=[];
+  for(const i of points){
+    const row=Math.floor(i/n),col=i%n;
+    if(col<n-1)edges.push([i,i+1]);
+    if(row<n-1)edges.push([i,i+n]);
+    if(i%2===0&&row<n-1){
+      if(col>0)edges.push([i,i+n-1]);
+      if(col<n-1)edges.push([i,i+n+1]);
+    }
+  }
+  const connected=(i,j)=>edges.some(([a,b])=>i===a&&j===b||i===b&&j===a);
+  for(const i of [0,4,20,24])board[i]='虎';
+  let turn='羊',reserve=20,selected=-1,caught=0,outcome='',quiet=0;
+  function options(i){
+    const result=[];
+    for(const j of points){
+      if(!connected(i,j))continue;
+      if(!board[j])result.push({to:j,take:-1});
+      if(board[i]!=='虎'||board[j]!=='羊')continue;
+      const row=2*Math.floor(j/n)-Math.floor(i/n),col=2*(j%n)-i%n;
+      if(row>=0&&row<n&&col>=0&&col<n&&!board[row*n+col]&&connected(j,row*n+col))result.push({to:row*n+col,take:j});
+    }
+    return result;
+  }
+  function play(i){
+    if(board[i]===turn){selected=selected===i?-1:i;render();return}
+    if(turn==='羊'&&reserve){board[i]='羊';reserve--;quiet=0}
+    else{
+      const move=options(selected).find(x=>x.to===i);
+      board[selected]='';board[i]=turn;
+      if(move.take>=0){board[move.take]='';caught++;quiet=0}else quiet++;
+    }
+    turn=turn==='羊'?'虎':'羊';selected=-1;
+    if(caught>=5)outcome='虎方捕獲五隻羊，勝出';
+    else if(turn==='虎'&&!board.some((v,j)=>v==='虎'&&options(j).length))outcome='羊方困住所有虎，勝出';
+    else if(turn==='羊'&&!reserve&&!board.some((v,j)=>v==='羊'&&options(j).length))outcome='羊方無棋可移動，和局';
+    else if(quiet>=100)outcome='連續 100 步無捕獲，和局';
+    render();
+  }
+  function canPlay(i){
+    if(outcome)return false;
+    if(turn==='羊'&&reserve)return !board[i];
+    return board[i]===turn&&options(i).length>0||selected>=0&&options(selected).some(x=>x.to===i);
+  }
+  function render(){
+    pointBoard(n,points,edges,i=>board[i],canPlay,play);
+    if(selected>=0)$('board').firstChild.querySelectorAll('button')[selected].classList.add('challengeSelected');
+    challengeStatus(outcome||turn+'方'+(turn==='羊'&&reserve?'放羊':'行棋')+'　｜　待放羊 '+reserve+'　｜　被捕 '+caught+'/5',!!outcome);
+    if(window.ridgeOnline)challengeButton($('controls'),'雙人連線',window.ridgeOnline);
+  }
+  render();
+}
+function gameTable(title, detail=''){
+  const board=$('board');
+  board.innerHTML='';
+  $('controls').innerHTML='';
+  tableText(board,title,'h3');
+  if(detail)tableText(board,detail);
+  return board;
+}
+function tableText(parent,text,tag='p'){
+  const element=document.createElement(tag);
+  element.textContent=text;
+  parent.append(element);
+  return element;
+}
+function tableActions(parent){
+  const row=document.createElement('div');
+  row.className='bar match-actions';
+  parent.append(row);
+  return row;
+}
+function tableTray(parent,caption=''){
+  if(caption)tableText(parent,caption).className='table-caption';
+  const tray=tableText(parent,'','div');
+  tray.className='table-tray';
+  return tray;
+}
+function tableCard(parent,face,{hidden=false,empty=false}={}){
+  const card=tableText(parent,hidden?'◆':empty?'—':String(face),'span');
+  card.className='table-card'+(hidden?' is-hidden':empty?' is-empty':/[♥♦]/.test(face)?' is-red':'');
+  if(!hidden&&!empty)card.dataset.face=face;
+  else card.setAttribute('aria-label',hidden?'暗牌':'空牌位');
+  return card;
+}
+function tableChip(parent,count,tone,label=''){
+  const chip=tableText(parent,'','span');
+  chip.className='table-chip';
+  if(tone!==undefined)chip.dataset.tone=tone;
+  if(label)chip.setAttribute('aria-label',label);
+  tableText(chip,count,'span');
+  return chip;
+}
+function tableWallet(parent,name,count,tone){
+  const item=tableText(parent,'','span');
+  item.className='table-wallet';
+  tableChip(item,count,tone,count+' 枚籌碼');
+  tableText(item,name,'span');
+}
+function tablePieceButton(parent,label,action){
+  const button=tableText(parent,'','button');
+  button.type='button';
+  button.className='table-control';
+  button.setAttribute('aria-label',label);
+  button.onclick=action;
+  return button;
+}
+function tableSelect(parent,title,entries,selected=0){
+  const label=document.createElement('label');
+  label.append(title+' ');
+  const select=document.createElement('select');
+  select.setAttribute('aria-label',title);
+  entries.forEach((entry,i)=>select.add(new Option(String(entry),i)));
+  select.selectedIndex=selected;
+  label.append(select);
+  parent.append(label);
+  return select;
+}
+function tableHandoff(player,message,after){
+  if(online){online.focus(online.roles.indexOf(player),true);after();return}
+  const board=gameTable(player+' 接手',message);
+  challengeButton(tableActions(board),'準備好',after);
+}
+function tableRestart(){
+  if(online){online.focus(online.seat,false,true);return}
+  challengeButton($('controls'),'再玩一局',next);
+}
+
+function cardForecast(){
+  const labels=['玩家一','玩家二'];
+  const stock=[seq(11),seq(11)], dealers=seq(2).map(()=>shuffle(seq(9).map(i=>i+1)));
+  const chips=[10,10];
+  let local=!!online,roundNo=0,face,hidden,last='';
+  const actor=()=>roundNo%2;
+  const guesser=()=>1-actor();
+  const name=i=>local?labels[i]:['你','電腦'][i];
+  function balances(board){
+    const tray=tableTray(board);
+    chips.forEach((count,i)=>tableWallet(tray,name(i),count,i+1));
+  }
+  function forecastCards(board,reveal=false){
+    tableCard(tableTray(board,'莊家牌'),face);
+    tableCard(tableTray(board,reveal?'玩家牌':'玩家暗牌'),reveal?hidden:null,{hidden:!reveal});
+  }
+  function begin(){
+    face=dealers[actor()].pop();
+    if(local)tableHandoff(name(actor()),'今手由你睇莊家牌，再暗出一張。',chooseCard);
+    else if(actor()===0)chooseCard();
+    else{
+      const cards=stock[1];
+      const good=cards.filter(n=>n>face);
+      const bad=cards.filter(n=>n<=face);
+      hidden=good.length&&(!bad.length||gameRandom()<.73)?good.at(-1):bad[0];
+      chooseBet();
+    }
+  }
+  function chooseCard(){
+    const board=gameTable('第 '+(roundNo+1)+'／18 手');
+    balances(board);
+    tableCard(tableTray(board,'莊家牌'),face);
+    tableText(board,'揀一張暗牌。高過莊家就賺兩張牌嘅差額。');
+    const row=tableTray(board,'你嘅手牌');
+    stock[actor()].forEach(card=>{
+      const button=tablePieceButton(row,'出 '+card,()=>{
+        hidden=card;
+        if(local)tableHandoff(name(guesser()),'對手已經落暗牌，輪到你押大小。',chooseBet);
+        else{
+          const unknown=stock[0];
+          const high=unknown.filter(n=>n>face).length;
+          const low=unknown.filter(n=>n<face).length;
+          settle(gameRandom()<.75?(high>=low?1:-1):(high>=low?-1:1),Math.min(chips[1],1+Math.floor(gameRandom()*3)));
+        }
+      });
+      button.classList.add('table-card-pick');
+      tableCard(button,card);
+    });
+  }
+  function chooseBet(){
+    const board=gameTable('第 '+(roundNo+1)+'／18 手');
+    balances(board);
+    forecastCards(board);
+    tableText(board,name(actor())+' 已出暗牌。對手尚有：'+stock[actor()].join('、'));
+    const row=tableActions(board);
+    const amount=tableSelect(row,'押注',seq(chips[guesser()]).map(i=>i+1));
+    challengeButton(row,'押大',()=>settle(1,amount.selectedIndex+1));
+    challengeButton(row,'押細',()=>settle(-1,amount.selectedIndex+1));
+  }
+  function settle(direction,amount){
+    const a=actor(),b=guesser(),diff=hidden-face;
+    stock[a].splice(stock[a].indexOf(hidden),1);
+    chips[a]+=Math.max(0,diff);
+    const delta=diff===0?0:Math.sign(diff)===direction?amount:-amount;
+    chips[b]+=delta;
+    last=name(a)+' 出 '+hidden+'，莊家 '+face+'，出牌獎勵 +'+Math.max(0,diff)+'。'+name(b)+' 押'+(direction===1?'大':'細')+' '+amount+'，'+(delta===0?'同點退回押注。':delta>0?'猜中，淨贏 '+delta+'。':'猜錯，扣 '+amount+'。');
+    roundNo++;
+    const done=roundNo===18||chips.includes(0);
+    const result=chips[0]===chips[1]?'和局':name(chips[0]>chips[1]?0:1)+' 勝出';
+    if(online)online.focus(b,false,done);
+    const board=gameTable(done?result:'第 '+roundNo+' 手結算');
+    balances(board);
+    forecastCards(board,true);
+    tableText(board,last);
+    if(done)tableRestart();
+    else challengeButton(tableActions(board),'下一手',begin);
+  }
+  if(online){begin();return}
+  const board=gameTable('猜大小','互換出牌同下注角色，每人開局 10 籌碼。');
+  const row=tableActions(board);
+  challengeButton(row,'對電腦',begin);
+  challengeButton(row,'本機雙人',()=>{local=true;begin()});
+}
+
+const truthRanks=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const truthValue=card=>card%13+1;
+const truthSuit=card=>Math.floor(card/13);
+const truthLabel=card=>truthRanks[card%13]+suits[truthSuit(card)];
+const truthQuestionLabels=['指定三個位置嘅點數總和','指定花色嘅點數總和','字母牌嘅點數總和','數字牌嘅點數總和','字母牌有幾多張','數字牌有幾多張','指定點數有幾多張','指定花色喺邊啲位置','同點數嘅牌喺邊啲位置','相連點數嘅牌喺邊啲位置','最大或最小點數嘅牌喺邊啲位置'];
+function truthAnswer(cards,q,args){
+  const values=cards.map(truthValue);
+  const letters=values.map((v,i)=>v===1||v>=11?i:-1).filter(i=>i>=0);
+  const numbers=seq(8).filter(i=>!letters.includes(i));
+  const matchingSuit=seq(8).filter(i=>truthSuit(cards[i])===args[0]);
+  const sum=indices=>String(indices.reduce((s,i)=>s+values[i],0));
+  const positions=indices=>indices.length?indices.map(i=>i+1).join('、'):'冇';
+  switch(q){
+    case 0:return sum(args);
+    case 1:return sum(matchingSuit);
+    case 2:return sum(letters);
+    case 3:return sum(numbers);
+    case 4:return String(letters.length);
+    case 5:return String(numbers.length);
+    case 6:return String(values.filter(v=>v===args[0]+1).length);
+    case 7:return positions(matchingSuit);
+    case 8:return values.filter((v,i)=>values.indexOf(v)===i&&values.lastIndexOf(v)!==i).map(v=>positions(seq(8).filter(i=>values[i]===v))).join(' ｜ ')||'冇';
+    case 9:return positions(seq(8).filter(i=>values.includes(values[i]-1)||values.includes(values[i]+1)));
+    default:return positions(seq(8).filter(i=>values[i]===(args[0]?Math.min(...values):Math.max(...values))));
+  }
+}
+function signalQuestions(){
+  const names=['玩家一','玩家二'], secrets=[[],[]], chips=[10,10], bids=[0,0], history=[[],[]];
+  let handNo=1;
+  function arrange(p){
+    const cards=secrets[p];
+    function paint(){
+      const board=gameTable(names[p]+' · 密排八張牌','同花色嘅牌要由左到右遞增。A 當 1，J、Q、K 當 11、12、13。');
+      const hand=tableTray(board,'你嘅牌序');
+      seq(8).forEach(i=>tableCard(hand,i<cards.length?truthLabel(cards[i]):'',{empty:i>=cards.length}));
+      const row=tableActions(board);
+      const options=seq(52).filter(card=>!cards.includes(card)&&!cards.some(c=>truthSuit(c)===truthSuit(card)&&truthValue(c)>truthValue(card)));
+      const select=tableSelect(row,'選牌',options.map(truthLabel));
+      challengeButton(row,'加入',()=>{cards.push(options[select.selectedIndex]);paint()},cards.length<8&&options.length>0);
+      challengeButton(row,'退一步',()=>{cards.pop();paint()},cards.length>0);
+      challengeButton(row,'鎖定牌序',()=>{
+        if(p===0)tableHandoff(names[1],'玩家一已鎖定，請揀你自己嘅八張牌。',()=>arrange(1));
+        else passBet(0);
+      },cards.length===8);
+    }
+    paint();
+  }
+  function passBet(p){
+    tableHandoff(names[p],'第 '+handNo+' 輪。請秘密提交代幣。',()=>bet(p));
+  }
+  function bet(p){
+    const other=1-p;
+    const board=gameTable(names[p]+' · 秘密投標',chips[other]<=5?'對手代幣警告燈亮起。':'');
+    tableWallet(tableTray(board),names[p],chips[p],p+1);
+    const row=tableActions(board);
+    const amount=tableSelect(row,'投標',seq(chips[p]+1));
+    challengeButton(row,'確認投標',()=>{
+      bids[p]=amount.selectedIndex;
+      if(p===0){passBet(1);return}
+      for(const i of seq(2))chips[i]+=2-bids[i];
+      if(online)online.focus(1,false);
+      const board=gameTable('第 '+handNo+' 輪開標','雙方各補 2 枚代幣，投標金額保密。');
+      if(bids[0]===bids[1])challengeButton(tableActions(board),'同注，重新投標',advance);
+      else{
+        const winner=bids[0]>bids[1]?0:1;
+        challengeButton(tableActions(board),names[winner]+' 行動',()=>tableHandoff(names[winner],'你贏咗今輪投標。',()=>act(winner)));
+      }
+    });
+  }
+  function advance(){handNo++;passBet(0)}
+  function act(p){
+    const board=gameTable(names[p]+' · 選擇行動','可以問一條問題，或者提交完整八張牌嘅點數順序。');
+    if(history[p].length){
+      const list=document.createElement('ol');
+      history[p].forEach(entry=>tableText(list,entry,'li'));
+      board.append(list);
+    }
+    const row=tableActions(board);
+    challengeButton(row,'問題',()=>ask(p));
+    challengeButton(row,'真相',()=>guess(p));
+  }
+  function ask(p){
+    const board=gameTable('選擇問題');
+    const row=tableActions(board);
+    const types=tableSelect(row,'問題',truthQuestionLabels);
+    const fields=tableActions(board);
+    const actions=tableActions(board);
+    function configure(){
+      fields.innerHTML='';
+      const q=types.selectedIndex;
+      const inputs=q===0?seq(3).map(i=>tableSelect(fields,'位置 '+(i+1),seq(8).map(j=>j+1),i)):
+        [1,7].includes(q)?[tableSelect(fields,'花色',[...suits])]:
+        q===6?[tableSelect(fields,'點數',truthRanks)]:
+        q===10?[tableSelect(fields,'最大／最小',['最大','最小'])]:[];
+      actions.innerHTML='';
+      challengeButton(actions,'提問',()=>{
+        const args=inputs.map(input=>input.selectedIndex);
+        if(q===0&&new Set(args).size!==3){$('msg').textContent='請揀三個唔同位置。';return}
+        const detail=inputs.map(input=>input.selectedOptions[0].textContent).join('、');
+        const result=truthQuestionLabels[q]+(detail?'（'+detail+'）':'')+'：'+truthAnswer(secrets[1-p],q,args);
+        history[p].push(result);
+        $('msg').textContent='';
+        const board=gameTable(names[p]+' · 答覆',result);
+        challengeButton(tableActions(board),'下一輪',advance);
+      });
+      challengeButton(actions,'返回',()=>act(p));
+    }
+    types.onchange=configure;
+    configure();
+  }
+  function guess(p){
+    const board=gameTable('宣告真相','由左至右揀八張牌嘅點數。同點可以重複，花色毋須猜。');
+    const row=tableActions(board);
+    const inputs=seq(8).map(i=>tableSelect(row,'第 '+(i+1)+' 張',['—',...truthRanks]));
+    const actions=tableActions(board);
+    challengeButton(actions,'提交真相',()=>{
+      if(inputs.some(input=>input.selectedIndex===0)){$('msg').textContent='請填齊八張牌。';return}
+      $('msg').textContent='';
+      const win=inputs.every((input,i)=>input.selectedIndex===truthValue(secrets[1-p][i]));
+      const board=gameTable(win?names[p]+' 勝出':'宣告未命中',win?'':'至少有一個位置未猜中，進入下一輪。');
+      if(win){
+        const reveal=tableTray(board,'對手牌序');
+        secrets[1-p].forEach(card=>tableCard(reveal,truthLabel(card)));
+        tableRestart();
+      }
+      else challengeButton(tableActions(board),'下一輪',advance);
+    });
+    challengeButton(actions,'返回',()=>act(p));
+  }
+  if(online){online.focus(0,true);arrange(0);return}
+  const board=gameTable('問題與真相','本機雙人交機對戰。系統會按真實牌序回答，對手嘅暗牌會保密。');
+  challengeButton(tableActions(board),'開始排牌',()=>arrange(0));
+}
+
+const sniperKinds=['高牌','一對','兩對','三條','順子','葫蘆','四條'];
+function sniperFive(cards){
+  const groups=[...new Set(cards)].map(n=>[n,cards.filter(c=>c===n).length]).sort((a,b)=>b[1]-a[1]||b[0]-a[0]);
+  const sorted=cards.slice().sort((a,b)=>b-a);
+  const straight=groups.length===5&&sorted[0]-sorted[4]===4;
+  const kind=groups[0][1]===4?6:groups[0][1]===3&&groups[1][1]===2?5:straight?4:groups[0][1]===3?3:groups[1][1]===2?2:groups[0][1]===2?1:0;
+  const top=groups[0][0];
+  return {kind,top,key:kind*11+top};
+}
+function sniperBest(cards){
+  return cards.map((_,i)=>sniperFive(cards.filter((_,j)=>i!==j))).sort((a,b)=>b.key-a.key)[0];
+}
+function pokerExchange(){
+  const names=online?seq(5).map(i=>i<online.count?'玩家 '+(i+1):'電腦 '+(i+1-online.count)):['你','電腦一','電腦二','電腦三','電腦四'];
+  const human=id=>id<(online?.count||1);
+  const players=names.map((name,id)=>({name,id,chips:60,safe:false,cards:[],folded:false,total:0,paid:0}));
+  const label=h=>sniperKinds[h.kind]+' '+h.top;
+  let dealer=0,handNo=0,shared,stage,pending,turn,lead,pot,snipes,events,lastResult='';
+  const remaining=()=>players.filter(p=>!p.safe);
+  const live=()=>remaining().filter(p=>!p.folded);
+  const ordered=(list,from)=>list.slice().sort((a,b)=>(a.id-from+5)%5-(b.id-from+5)%5);
+  const totals=()=>players.map(p=>p.name+' '+(p.safe?'已晉級':p.chips)).join(' ｜ ');
+  function startHand(){
+    handNo++;
+    const deck=shuffle(seq(40).map(i=>1+i%10));
+    pot=0;snipes=[];events=[];lastResult='';
+    for(const p of remaining()){
+      p.folded=false;p.cards=deck.splice(0,2);p.paid=0;
+      p.total=p.chips>0?1:0;p.chips-=p.total;pot+=p.total;
+      if(!p.total)p.folded=true;
+    }
+    shared=deck.splice(0,4);
+    openBet(0);
+    run();
+  }
+  function openBet(step){
+    stage=step;lead=0;
+    for(const p of live())p.paid=0;
+    pending=ordered(live(),dealer).map(p=>p.id);
+  }
+  function maxBet(){
+    return Math.min(...live().map(p=>p.paid+p.chips));
+  }
+  function bet(action,target=0){
+    const p=players[turn];
+    if(action==='fold')p.folded=true;
+    else{
+      const newAmount=action==='raise'?target:lead;
+      const added=newAmount-p.paid;
+      p.chips-=added;p.paid=newAmount;p.total+=added;pot+=added;
+      if(newAmount>lead){
+        lead=newAmount;
+        const nextId=(turn+1)%5;
+        pending=ordered(live().filter(other=>other.id!==turn),nextId).map(other=>other.id);
+      }
+    }
+    events.push(p.name+' '+(action==='fold'?'棄牌':action==='raise'?'下注至 '+lead:lead?'跟注':'過牌'));
+  }
+  function snipe(target){
+    const p=players[turn];
+    if(target)snipes.push(target.key);
+    events.push(p.name+' '+(target?'狙擊 '+label(target):'略過狙擊'));
+  }
+  function showdown(){
+    const active=ordered(live(),dealer);
+    let winners=active;
+    if(active.length>1){
+      const hands=active.map(p=>{
+        const value=sniperBest([...p.cards,...shared]);
+        return {p,value,hit:snipes.includes(value.key),hi:Math.max(...p.cards),sum:p.cards[0]+p.cards[1]};
+      });
+      const eligible=hands.filter(h=>!h.hit).sort((a,b)=>b.value.key-a.value.key||b.hi-a.hi||b.sum-a.sum);
+      const best=eligible[0];
+      if(best)winners=eligible.filter(h=>h.value.key===best.value.key&&h.hi===best.hi&&h.sum===best.sum).map(h=>h.p);
+      events.push(hands.map(h=>h.p.name+' ['+h.p.cards.join('、')+'] '+label(h.value)+(h.hit?'（被狙擊）':'')).join(' ｜ '));
+    }
+    winners=ordered(winners,dealer);
+    const share=Math.floor(pot/winners.length);
+    winners.forEach((p,i)=>p.chips+=share+Number(i<pot%winners.length));
+    lastResult=winners.map(p=>p.name).join('、')+' 獲派池內 '+pot+' 籌碼。';
+    stage=3;
+    distribute();
+  }
+  function distribute(){
+    while(remaining().length>1){
+      const p=ordered(remaining(),dealer).find(candidate=>candidate.chips>=75);
+      if(!p)break;
+      p.safe=true;p.chips-=75;
+      events.push(p.name+' 交回 75 籌碼，成功晉級。');
+      const others=remaining().slice().sort((a,b)=>a.chips-b.chips);
+      for(const recipient of others){
+        if(!recipient.chips&&p.chips){p.chips--;recipient.chips++;events.push(p.name+' 分 1 籌碼畀 '+recipient.name+'。')}
+      }
+      if(human(p.id)&&p.chips){
+        stage=4;
+        renderGift(p);
+        return;
+      }
+      if(p.chips){
+        const recipient=others[0];
+        recipient.chips+=p.chips;
+        events.push(p.name+' 分 '+p.chips+' 籌碼畀 '+recipient.name+'。');
+        p.chips=0;
+      }
+    }
+    render();
+  }
+  function renderGift(p){
+    if(online)online.focus(p.id,false);
+    const board=gameTable('你已晉級 · 分派剩餘籌碼',totals());
+    tableText(board,'仲有 '+p.chips+' 籌碼可以分配。籌碼用完後完成結算。');
+    const row=tableActions(board);
+    const recipients=remaining();
+    const choice=tableSelect(row,'收取籌碼',recipients.map(other=>other.name));
+    const amount=tableSelect(row,'數量',seq(p.chips).map(i=>i+1),p.chips-1);
+    challengeButton(row,'分派',()=>{
+      const recipient=recipients[choice.selectedIndex],gift=amount.selectedIndex+1;
+      p.chips-=gift;recipient.chips+=gift;
+      events.push('你分 '+gift+' 籌碼畀 '+recipient.name+'。');
+      if(p.chips)renderGift(p);
+      else{stage=3;distribute()}
+    });
+  }
+  function botBet(){
+    const p=players[turn],cap=maxBet(),call=lead-p.paid;
+    const good=stage===1?sniperBest([...p.cards,...shared]).kind>=2:p.cards[0]===p.cards[1]||Math.max(...p.cards)>=8;
+    if(cap>lead&&gameRandom()<(good?.55:.29)){
+      const inc=1+Math.floor(gameRandom()*Math.min(cap-lead,handNo>15?15:6));
+      bet('raise',lead+inc);
+    }else if(call>0&&live().length>2&&p.chips>call&&gameRandom()<(good?.07:.24))bet('fold');
+    else bet('call');
+  }
+  function botSnipe(){
+    const p=players[turn];
+    if(gameRandom()<.27){snipe(null);return}
+    const known=[...p.cards,...shared],own=sniperBest(known);
+    const unseen=seq(40).map(i=>1+i%10);
+    known.forEach(n=>unseen.splice(unseen.indexOf(n),1));
+    const counts=new Map();
+    for(let i=0;i<unseen.length;i++)for(let j=i+1;j<unseen.length;j++){
+      const candidate=sniperBest([...shared,unseen[i],unseen[j]]);
+      if(candidate.key<=own.key||snipes.includes(candidate.key))continue;
+      const old=counts.get(candidate.key);
+      counts.set(candidate.key,{...candidate,count:(old?.count||0)+1});
+    }
+    snipe([...counts.values()].sort((a,b)=>b.count-a.count)[0]);
+  }
+  function run(){
+    while(stage<3){
+      if(live().length===1){showdown();return}
+      if(!pending.length){
+        if(stage===0)openBet(1);
+        else if(stage===1){stage=2;pending=ordered(live(),dealer).map(p=>p.id)}
+        else{showdown();return}
+        continue;
+      }
+      turn=pending.shift();
+      if(human(turn)){render();return}
+      if(stage===2)botSnipe();
+      else botBet();
+    }
+  }
+  function render(){
+    const complete=stage===3&&remaining().length===1;
+    if(online)online.focus(stage===3?0:turn,stage!==3,complete);
+    const self=players[online?online.seat:0];
+    const board=gameTable(complete?(online?remaining()[0].name+' 出局':players[0].safe?'你已成功晉級':'你成為最後一位，出局'):'狙擊撲克 · 第 '+handNo+' 手');
+    const stacks=tableTray(board);
+    players.forEach(p=>{
+      if(p.safe)tableText(stacks,p.name+' 已晉級','span').className='table-wallet';
+      else tableWallet(stacks,p.name,p.chips,p.id===0?1:undefined);
+    });
+    tableWallet(stacks,'彩池',pot,3);
+    const community=tableTray(board,'公牌');
+    shared.forEach((card,i)=>{
+      if(stage===0&&i>=2)tableCard(community,null,{hidden:true});
+      else tableCard(community,card);
+    });
+    if((!online||stage!==3)&&!self.safe&&!self.folded){
+      const hand=tableTray(board,'你嘅底牌');
+      self.cards.forEach(card=>tableCard(hand,card));
+    }
+    if(lastResult)tableText(board,lastResult);
+    if(events.length){
+      const log=document.createElement('details');
+      tableText(log,'本手紀錄','summary');
+      events.forEach(event=>tableText(log,event));
+      board.append(log);
+      if(stage===3)log.open=true;
+    }
+    if(complete){tableRestart();return}
+    const row=tableActions(board);
+    if(stage===3){
+      challengeButton(row,'下一手',()=>{
+        dealer=ordered(remaining(),(dealer+1)%5)[0].id;
+        startHand();
+      });
+      return;
+    }
+    if(stage===2){
+      tableText(board,'你嘅最佳牌型：'+label(sniperBest([...self.cards,...shared])));
+      const kind=tableSelect(row,'狙擊牌型',sniperKinds);
+      const top=tableSelect(row,'牌型主點數',seq(10).map(i=>i+1));
+      challengeButton(row,'狙擊',()=>{
+        const k=kind.selectedIndex,n=top.selectedIndex+1;
+        snipe({kind:k,top:n,key:k*11+n});run();
+      });
+      challengeButton(row,'略過狙擊',()=>{snipe(null);run()});
+      return;
+    }
+    const call=lead-self.paid;
+    challengeButton(row,call?'跟注 '+call:'過牌',()=>{bet('call');run()});
+    challengeButton(row,'棄牌',()=>{bet('fold');run()});
+    const cap=maxBet();
+    if(cap>lead){
+      const amount=tableSelect(row,'下注至',seq(cap-lead).map(i=>i+lead+1));
+      challengeButton(row,lead?'加注':'下注',()=>{bet('raise',lead+1+amount.selectedIndex);run()});
+    }
+  }
+  if(online){startHand();return}
+  const board=gameTable('狙擊撲克','五人局，你對四個電腦。每人 60 籌碼，交回 75 即晉級。兩輪下注後可以狙擊指定牌型同主點數。');
+  challengeButton(tableActions(board),'開始對戰',startHand);
+}
+
+function heavyOrder(entries,first,count){
+  return entries.slice().sort((a,b)=>Number(b.color===3)-Number(a.color===3)||b.weight-a.weight||
+    (a.player-first+count)%count-(b.player-first+count)%count);
+}
+function heavyPlace(scale,weight){
+  if(scale.reduce((sum,n)=>sum+n,0)+weight<13){scale.push(weight);return 0}
+  const penalty=scale.length;
+  scale.splice(0,scale.length,weight);
+  return penalty;
+}
+function sumThirteen(){
+  const players=online?seq(7).map(i=>i<online.count?'玩家 '+(i+1):'電腦 '+(i+1-online.count)):['你','電腦一','電腦二','電腦三','電腦四','電腦五','電腦六'];
+  const humans=online?.count||1;
+  let locked=[];
+  const colors=['紅','綠','藍','彩虹'];
+  const stock=()=>players.map(()=>({cards:seq(7),tokens:[2,2,2,1]}));
+  const scales=[[],[],[]],scores=players.map(()=>0),latest=players.map(()=>-1);
+  let inventory=stock(),roundNo=1,first=0,clock=0,queue=[],deferred=[],events=[],placingDeferred=false;
+  const weightAt=color=>scales[color].reduce((sum,n)=>sum+n,0);
+  function stone(parent,weight){
+    const item=tableText(parent,weight,'span');
+    item.className='table-stone';
+  }
+  function status(title,targets=[],onPlace){
+    const board=gameTable(title,'第 '+roundNo+'／14 輪 ｜ 首家 '+players[first]);
+    const strip=tableText(board,'','div');
+    strip.className='heavy-board';
+    scales.forEach((scale,i)=>{
+      const name=colors[i]+'磅';
+      const item=targets.includes(i)
+        ?tablePieceButton(strip,'放石到'+name+'，現重 '+weightAt(i),()=>onPlace(i))
+        :tableText(strip,'','div');
+      item.className='heavy-pan';
+      item.dataset.tone=i;
+      tableText(item,name,'span').className='heavy-pan-title';
+      const stones=tableText(item,'','span');
+      stones.className='heavy-stones';
+      scale.forEach(weight=>stone(stones,weight));
+      tableText(item,'','span').className='heavy-bowl';
+      tableText(item,weightAt(i)+'／12','span').className='heavy-gauge';
+    });
+    const score=tableText(board,'','div');
+    score.className='heavy-score';
+    players.forEach((name,i)=>tableText(score,name+' '+scores[i]+' 罰分','span'));
+    if(events.length){
+      const log=document.createElement('details');
+      log.open=true;
+      tableText(log,'本輪紀錄','summary');
+      events.forEach(event=>tableText(log,event));
+      board.append(log);
+    }
+    return board;
+  }
+  function choose(player=0){
+    if(player===0){events=[];locked=[]}
+    if(online)online.focus(player,true);
+    const board=status('秘密揀牌');
+    const stock=inventory[player];
+    let weight, color;
+    function choices(title,entries,render,select){
+      const tray=tableTray(board,title);
+      tray.classList.add('heavy-choices');
+      const buttons=entries.map(({value,label,disabled})=>{
+        const button=tablePieceButton(tray,label,()=>{
+          buttons.forEach(item=>item.setAttribute('aria-pressed',String(item===button)));
+          select(value);
+          lock.disabled=weight===undefined||color===undefined;
+        });
+        button.setAttribute('aria-pressed','false');
+        button.disabled=!!disabled;
+        render(button,value);
+        return button;
+      });
+    }
+    choices('揀重量',stock.cards.map(value=>({value,label:'重量 '+value})),stone,value=>{weight=value});
+    choices('揀顏色籌碼',colors.map((label,value)=>({
+      value,label:label+'籌碼，剩 '+stock.tokens[value]+' 枚',disabled:!stock.tokens[value]
+    })),(button,value)=>{
+      tableChip(button,stock.tokens[value],value);
+      tableText(button,colors[value],'span');
+    },value=>{color=value});
+    const lock=challengeButton(tableActions(board),'鎖定重量同籌碼',()=>submit(player,weight,color),false);
+  }
+  function penaltyRisk(color,weight){
+    return weightAt(color)+weight>=13?scales[color].length:0;
+  }
+  function botChoice(player){
+    const {cards,tokens}=inventory[player];
+    const options=seq(4).filter(c=>tokens[c]).flatMap(color=>cards.map(weight=>({player,color,weight})));
+    return options.map(entry=>{
+      const {color,weight}=entry;
+      const risk=color===3?Math.min(...seq(3).map(c=>penaltyRisk(c,weight))):penaltyRisk(color,weight);
+      return {entry,score:gameRandom()*3-risk*1.5+weight*.1-(color===3?.45:0)};
+    }).sort((a,b)=>b.score-a.score)[0].entry;
+  }
+  function submit(player,weight,color){
+    locked.push({player,weight,color});
+    if(player+1<humans){choose(player+1);return}
+    if(online)online.focus(0,false);
+    const entries=[...locked,...players.slice(humans).map((_,i)=>botChoice(i+humans))];
+    for(const entry of entries){
+      const held=inventory[entry.player];
+      held.cards.splice(held.cards.indexOf(entry.weight),1);
+      held.tokens[entry.color]--;
+    }
+    queue=heavyOrder(entries,first,players.length);
+    deferred=[];placingDeferred=false;
+    events.push('全員開牌：'+queue.map(entry=>players[entry.player]+' '+colors[entry.color]+entry.weight).join(' ｜ '));
+    const board=status('公開重量同籌碼');
+    const reveal=tableTray(board,'放石次序');
+    queue.forEach(entry=>tableWallet(reveal,players[entry.player],entry.weight,entry.color));
+    challengeButton(tableActions(board),'開始放石',advance);
+  }
+  function place(entry,color){
+    const {player,weight}=entry;
+    const penalty=heavyPlace(scales[color],weight);
+    scores[player]+=penalty;
+    if(penalty)latest[player]=++clock;
+    events.push(players[player]+' 放 '+weight+' 到'+colors[color]+'磅'+(penalty?'，超重，罰 '+penalty+' 分。':'。'));
+  }
+  function advance(){
+    while(queue.length||deferred.length&&!placingDeferred){
+      if(!queue.length){queue=deferred.reverse();deferred=[];placingDeferred=true}
+      const entry=queue.shift();
+      const {player,color,weight}=entry;
+      if(player<humans){humanPlace(entry);return}
+      const target=color===3?seq(3).sort((a,b)=>penaltyRisk(a,weight)-penaltyRisk(b,weight)||weightAt(b)-weightAt(a))[0]:color;
+      if(!placingDeferred&&queue.length&&penaltyRisk(target,weight)>0){
+        deferred.push(entry);
+        events.push(players[player]+' 延後放石。');
+      }else place(entry,target);
+    }
+    endRound();
+  }
+  function humanPlace(entry){
+    if(online)online.focus(entry.player,false);
+    const targets=entry.color===3?seq(3):[entry.color];
+    const board=status('輪到你放石 · '+entry.weight+' 重量',targets,color=>{place(entry,color);advance()});
+    const item=tableTray(board,'撳亮邊嘅磅放石');
+    stone(item,entry.weight);
+    tableChip(item,'',entry.color,colors[entry.color]+'籌碼');
+    const row=tableActions(board);
+    if(!placingDeferred)challengeButton(row,'延後放石',()=>{
+      deferred.push(entry);
+      events.push(players[entry.player]+' 延後放石。');
+      advance();
+    });
+  }
+  function endRound(){
+    const final=roundNo===14;
+    if(online)online.focus(0,false,final);
+    const ranking=seq(players.length).sort((a,b)=>scores[a]-scores[b]||latest[a]-latest[b]||a-b);
+    const board=status(final?(online?'比賽結束':'比賽結束 · '+(ranking.slice(-2).includes(0)?'你出局':'你成功留低')):'本輪結算');
+    if(final){
+      ranking.forEach((id,i)=>tableText(board,(i+1)+'. '+players[id]+' · '+scores[id]+' 罰分'+(i>=players.length-2?'（出局）':'')));
+      tableRestart();
+    }else challengeButton(tableActions(board),'下一輪',()=>{
+      if(roundNo===7)inventory=stock();
+      if(clock)first=latest.indexOf(clock);
+      roundNo++;
+      choose();
+    });
+  }
+  if(online){choose();return}
+  const board=gameTable('Heavy 13','七人局，你對六個電腦。三個磅會保留累積重量，放到 13 或以上會受罰。14 輪後罰分最多嘅兩位出局。');
+  challengeButton(tableActions(board),'開始對戰',()=>choose());
+}
+
+function knightTour(){
+  const size=5,points=seq(size*size);
+  const edges=points.map(i=>points.filter(j=>{
+    const dx=Math.abs(i%size-j%size),dy=Math.abs(Math.floor(i/size)-Math.floor(j/size));
+    return dx*dy===2;
+  }));
+  const route=[shuffle(points.filter(i=>i%2===0))[0]];
+  if(online?.raceCheck){
+    online.verify=proof=>validIndices(proof,25,25)&&proof[0]===route[0]&&proof.slice(1).every((point,i)=>edges[proof[i]].includes(point))?0:null;
+    return;
+  }
+  function play(i){route.push(i);render()}
+  function search(current,seen,budget){
+    if(seen.size===points.length)return true;
+    if(--budget.left<0)return false;
+    const available=i=>edges[i].filter(j=>!seen.has(j));
+    for(const i of available(current).sort((a,b)=>available(a).length-available(b).length)){
+      seen.add(i);
+      if(search(i,seen,budget))return true;
+      seen.delete(i);
+    }
+    return false;
+  }
+  function render(hint=-1,checked=false){
+    const current=route.at(-1),moves=edges[current].filter(i=>!route.includes(i)),won=route.length===points.length;
+    challengeGrid(size,i=>i===current?'♞':route.includes(i)?String(route.indexOf(i)+1):moves.includes(i)?'·':'',i=>!won&&moves.includes(i),play);
+    const buttons=$('board').firstChild.children;
+    if(hint>=0)buttons[hint].classList.add('challengeSelected');
+    challengeStatus(won?'完成！25 格各行過一次。':'已到訪 '+route.length+'/25 格。 '+(checked&&hint<0?'未搵到可完成嘅下一步，試吓退一步。':!moves.length?'行唔通，退一步再試。':''),won);
+    if(won){if(raceFinish)raceFinish([...route]);return}
+    challengeButton($('controls'),'退一步',()=>{route.pop();render()},route.length>1);
+    challengeButton($('controls'),'提示',()=>{
+      const budget={left:40000};
+      const candidate=moves.find(i=>search(i,new Set([...route,i]),budget));
+      render(candidate??-1,true);
+    },moves.length>0);
+  }
+  render();
+}
+function spotDifference(){
+  const {recordScene,spotLayout,spotScore,studyMs}=window.exilePuzzles;
+  const solo=!raceFinish&&!online?.raceCheck;
+  if(solo){
+    try {const saved=JSON.parse(localStorage.getItem('devils.spot.scenes'));if(Array.isArray(saved))spotHistory=saved} catch {}
+  }
+  const {plate,changes}=spotLayout(gameRandom,solo?spotHistory:undefined);
+  if(solo){
+    spotHistory=recordScene(spotHistory,plate.id);
+    try {localStorage.setItem('devils.spot.scenes',JSON.stringify(spotHistory))} catch {}
+  }
+  if(online?.raceCheck){online.verify=proof=>spotScore(changes,proof);return}
+  const marks=[], stage=document.createElement('div'), canvas=document.createElement('canvas');
+  const phase=raceFinish&&window.spotPhase||1+(round-1)%3;
+  if(!raceFinish&&phase===1)spotTotal=0;
+  stage.className='memory-plate';
+  canvas.width=canvas.height=768;
+  canvas.setAttribute('aria-label','觀察圖畫');
+  stage.append(canvas);
+  $('board').replaceChildren(stage);
+  const ctx=canvas.getContext('2d'),pictures=[new Image(),new Image()];
+  let comparing=false,review=false;
+  const label=(phase>3?'同分加賽':'第 '+phase+'／3 回合')+(plate.name?' · '+plate.name:'');
+  function paint(){
+    ctx.drawImage(pictures[0],0,0,768,768);
+    if(comparing)for(const [x,y,rx,ry] of changes){
+      ctx.save();ctx.beginPath();ctx.ellipse(x*768,y*768,rx*768,ry*768,0,0,2*Math.PI);
+      ctx.clip();ctx.drawImage(pictures[1],0,0,768,768);ctx.restore();
+      if(review){ctx.beginPath();ctx.ellipse(x*768,y*768,rx*768,ry*768,0,0,2*Math.PI);ctx.strokeStyle='#22ff9a';ctx.lineWidth=4;ctx.stroke()}
+    }
+    for(const [x,y] of marks){
+      ctx.beginPath();
+      for(const d of [-1,1]){ctx.moveTo(x*768-10,y*768-10*d);ctx.lineTo(x*768+10,y*768+10*d)}
+      ctx.lineCap='round';ctx.strokeStyle='white';ctx.lineWidth=8;ctx.stroke();
+      ctx.strokeStyle='#b41f37';ctx.lineWidth=4;ctx.stroke();
+    }
+  }
+  canvas.onclick=e=>{
+    if(!comparing||finished)return;
+    const box=canvas.getBoundingClientRect(), x=(e.clientX-box.left)/box.width,y=(e.clientY-box.top)/box.height;
+    const index=marks.findIndex(([a,b])=>Math.hypot(a-x,b-y)<.029);
+    if(index>=0)marks.splice(index,1);
+    else if(marks.length<5)marks.push([x,y].map(v=>+v.toFixed(4)));
+    else {$('msg').textContent='已標記五處。撳交叉可取消，再揀另一處。';return}
+    paint();$('spot-count').textContent=label+' · '+marks.length+'／5';
+    $('submit').disabled=marks.length!==5;
+  };
+  function reveal(){
+    if(comparing)return;
+    comparing=true;clearInterval(timer);paint();
+    controls('<strong id="spot-count">'+label+' · 0／5</strong>');
+    $('controls').querySelector('.link')?.remove();
+    $('submit').disabled=true;
+    $('msg').textContent='直接喺圖上撳五處變化。再撳交叉可以取消。';
+  }
+  $('controls').replaceChildren();$('msg').textContent='載入圖畫中…';
+  pictures.forEach((img,i)=>{img.src='./art/plate-'+plate.id+'-'+i+'.webp'});
+  Promise.all(pictures.map(img=>img.decode())).then(()=>{
+    if(!stage.isConnected||$('play').hidden||!stage.parentElement)return;
+    paint();$('msg').textContent='記住成幅圖嘅細節。';
+    $('controls').innerHTML='<strong id="spot-clock"></strong>'+(raceFinish?'':'<button id="spot-skip">記好，開始作答</button>');
+    if(!raceFinish)$('spot-skip').onclick=reveal;
+    const deadline=(raceStarted||Date.now())+studyMs;
+    function clock(){
+      const seconds=Math.ceil((deadline-Date.now())/1000);
+      if(seconds<=0){reveal();return}
+      $('spot-clock').textContent=label+' · 記憶時間 '+seconds+' 秒';
+    }
+    timer=setInterval(clock,200);clock();
+  }).catch(()=>{if(stage.isConnected)$('msg').textContent='圖畫未能載入，請重新開局。'});
+  check=()=>{
+    if(!comparing||marks.length!==5)return null;
+    raceProof=marks;
+    const points=spotScore(changes,marks);
+    if(!raceFinish)spotTotal+=points;
+    feedback='今輪 '+points+'／5'+(raceFinish?'':' · '+(phase===3?'三輪總分 ':'累計 ')+spotTotal+'／15');
+    review=true;paint();return true;
+  };
+}
+
+function symmetryPuzzle(){
+  const {assemblyLayouts,colors,world,solved}=window.exilePuzzles;
+  const sets=assemblyLayouts(gameRandom);
+  const valid=proof=>Array.isArray(proof)&&proof.length===3&&sets.every(({pieces},i)=>solved(pieces,proof[i]));
+  if(online?.raceCheck){online.verify=proof=>valid(proof)?0:null;return}
+  const poses=sets.map(set=>set.start.map(p=>p.slice()));
+  const canvas=document.createElement('canvas'), tabs=document.createElement('div');
+  const tones=[['#67c8f5','#14527a'],['#ff8b78','#9d2a30'],['#87d19b','#20664e']];
+  const textures=colors.map((_,i)=>{const image=new Image();image.src='./art/enamel-'+i+'.webp';return image});
+  let group=0,selected=0,drag=null,handle=null;
+  canvas.className='assembly-table';canvas.tabIndex=0;
+  canvas.width=800;canvas.height=680;
+  canvas.setAttribute('aria-label','拼件枱。拖動拼件，拖金色手柄旋轉。方向鍵移動，Q、E 旋轉。');
+  tabs.className='assembly-tabs';
+  const board=$('board');board.replaceChildren(tabs,canvas);
+  const ctx=canvas.getContext('2d');
+  function path(poly){
+    ctx.beginPath();poly.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.closePath();
+  }
+  function draw(){
+    ctx.setTransform(2,0,0,2,0,0);ctx.clearRect(0,0,400,340);
+    const pieces=sets[group].pieces;
+    pieces.forEach((p,i)=>{
+      const poly=world(p,poses[group][i]), y=poses[group][i][1];
+      path(poly);
+      const grad=ctx.createLinearGradient(0,y-50,6,y+58);
+      grad.addColorStop(0,tones[group][0]);grad.addColorStop(1,tones[group][1]);
+      ctx.fillStyle=grad;ctx.shadowColor='#160c08aa';ctx.shadowOffsetY=4;ctx.shadowBlur=5;
+      ctx.fill();ctx.shadowBlur=ctx.shadowOffsetY=0;
+      if(textures[group].complete&&textures[group].naturalWidth){
+        ctx.save();ctx.globalAlpha=.52;ctx.fillStyle=ctx.createPattern(textures[group],'repeat');ctx.fill();ctx.restore();
+      }
+      ctx.strokeStyle=i===selected?'#fff1c7':'#332b2b';ctx.lineWidth=i===selected?2.4:1.4;ctx.stroke();
+    });
+    const pose=poses[group][selected], poly=world(pieces[selected],pose);
+    const top=poly.reduce((a,b)=>a[1]<b[1]?a:b);
+    handle=[Math.max(9,Math.min(391,top[0])),Math.max(10,top[1]-18)];
+    ctx.beginPath();ctx.moveTo(...top);ctx.lineTo(...handle);ctx.strokeStyle='#fff0c9';ctx.stroke();
+    ctx.beginPath();ctx.arc(...handle,6,0,2*Math.PI);ctx.fillStyle='#d9a444';ctx.fill();ctx.stroke();
+    [...tabs.children].forEach((b,i)=>b.setAttribute('aria-pressed',String(i===group)));
+  }
+  function point(e){const r=canvas.getBoundingClientRect();return [(e.clientX-r.left)*400/r.width,(e.clientY-r.top)*340/r.height]}
+  function confine(){
+    const p=poses[group][selected], vertices=world(sets[group].pieces[selected],p);
+    for(const [k,limit] of [[0,400],[1,340]]){
+      const vals=vertices.map(v=>v[k]);p[k]+=Math.max(0,-Math.min(...vals))-Math.max(0,Math.max(...vals)-limit);
+    }
+  }
+  function rotate(delta){const p=poses[group][selected];p[2]=(p[2]+delta+360)%360;confine();draw()}
+  function snap(){
+    const p=poses[group][selected], parts=sets[group].pieces, mine=world(parts[selected],p);
+    let nearest=6,shift;
+    parts.forEach((part,i)=>{if(i!==selected)for(const b of world(part,poses[group][i]))for(const a of mine){
+      const dx=b[0]-a[0],dy=b[1]-a[1],d=Math.hypot(dx,dy);
+      if(d<nearest){nearest=d;shift=[dx,dy]}
+    }});
+    if(shift){p[0]+=shift[0];p[1]+=shift[1]}confine();
+  }
+  canvas.onpointerdown=e=>{
+    if(finished||drag)return;
+    const pos=point(e);
+    const turning=Math.hypot(pos[0]-handle[0],pos[1]-handle[1])<=12;
+    if(!turning){
+      let hit=-1;
+      sets[group].pieces.forEach((p,i)=>{path(world(p,poses[group][i]));if(ctx.isPointInPath(pos[0]*2,pos[1]*2))hit=i});
+      if(hit<0)return;
+      selected=hit;
+    }
+    const start=poses[group][selected].slice();
+    drag={id:e.pointerId,pos,start,turning,angle:Math.atan2(pos[1]-start[1],pos[0]-start[0])};
+    canvas.setPointerCapture(e.pointerId);draw();
+  };
+  canvas.onpointermove=e=>{
+    if(!drag||drag.id!==e.pointerId)return;
+    const [x,y]=point(e),p=poses[group][selected],{pos,start,angle}=drag;
+    if(drag.turning){
+      let deg=(start[2]+(Math.atan2(y-start[1],x-start[0])-angle)*180/Math.PI+720)%360;
+      const near=Math.round(deg/15)*15;p[2]=Math.abs(near-deg)<2?near:deg;
+    }else{p[0]=start[0]+x-pos[0];p[1]=start[1]+y-pos[1]}
+    confine();draw();
+  };
+  canvas.onpointerup=canvas.onpointercancel=e=>{if(drag?.id===e.pointerId){drag=null;snap();draw()}};
+  canvas.onkeydown=e=>{
+    if(finished)return;
+    const p=poses[group][selected],key=e.key.toLowerCase(),step=e.shiftKey?8:1;
+    const moves={arrowleft:[-1,0],arrowright:[1,0],arrowup:[0,-1],arrowdown:[0,1]};
+    if(moves[key]){p[0]+=moves[key][0]*step;p[1]+=moves[key][1]*step;confine()}
+    else if(key==='q'||key==='e')rotate(key==='q'?-15:15);
+    else if(key===' '){selected=(selected+1)%poses[group].length}
+    else return;
+    e.preventDefault();draw();
+  };
+  textures.forEach(image=>{image.onload=()=>{if(canvas.isConnected)draw()}});
+  colors.forEach((color,i)=>challengeButton(tabs,color+'組',()=>{if(!finished){group=i;selected=0;draw()}}));
+  controls('');
+  $('submit').textContent='撳鐘驗收三組';
+  for(const delta of [-15,15]){
+    const btn=document.createElement('button');btn.textContent=delta<0?'↶ 15°':'↷ 15°';
+    btn.onclick=()=>{if(!finished)rotate(delta)};
+    $('controls').prepend(btn);
+  }
+  $('msg').textContent='拖動拼件拼合。拖金色手柄自由旋轉，或用按鈕轉 15°。';
+  check=()=>{
+    raceProof=poses.map(set=>set.map(p=>p.map(n=>+n.toFixed(3))));
+    const ok=valid(raceProof);
+    feedback=ok?'三組驗收成功！':'驗收未通過。請檢查三組嘅輪廓、接縫同重疊，再撳鐘。';
+    return ok;
+  };
+  draw();
+}
+
+  mode = games.findIndex(game => game[0] === id);
+  round = question - 1;
+  next();
+}
