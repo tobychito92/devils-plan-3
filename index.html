@@ -99,13 +99,14 @@ const episodes={
   6:[1,6],15:[1,11],13:[1,12],14:[1,12],
   31:[2,5],21:[2,6],28:[2,12],29:[2,12],30:[2,12],
   33:[3,1],34:[3,1],36:[3,2],37:[3,2],40:[3,6],
-  42:[3,7],44:[3,8],47:[3,10],48:[3,10],49:[3,11],50:[3,12],51:[3,13]
+  42:[3,7],44:[3,8],47:[3,10],48:[3,10],49:[3,11],50:[3,12],51:[3,13],57:[3,13]
 };
 const catalogue=games.map(([id,name,en],i)=>({id,name,en,i}));
 catalogue.push(
   {id:49,name:'隱藏詞語',en:'Hidden Word',challenge:'words'},
   {id:50,name:'算式之塔',en:'Tower of Equations',challenge:'tower'},
-  {id:51,name:'點數五子棋',en:'Point Gomoku',challenge:'line'}
+  {id:51,name:'點數五子棋',en:'Point Gomoku',challenge:'line'},
+  {id:57,name:'漸層',en:'Gradation',challenge:'grad'}
 );
 function catalogueCard({id,name,en,i,challenge}){
   const open=challenge?'openCatalogueChallenge(&quot;'+challenge+'&quot;)':'start('+i+')';

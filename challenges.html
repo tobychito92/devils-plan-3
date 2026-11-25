@@ -32,7 +32,7 @@ button:disabled{opacity:.5;cursor:default} .primary,[aria-pressed=true]{backgrou
 .history li{display:grid;grid-template-columns:minmax(65px,1fr) 3fr 54px;align-items:center;gap:8px;padding:7px;border-bottom:1px solid var(--stroke)} meter{width:100%;height:16px;accent-color:var(--jade)}
 .guess input{flex:1;min-width:120px} .guess{margin-top:10px} details{margin:14px 0}
 summary{cursor:pointer} .wordlist{margin:8px 0;max-height:150px;overflow:auto;line-height:1.8}
-.board{grid-template-columns:repeat(15,minmax(0,1fr));gap:0;padding:8px;background:#cba36f}.cell{box-shadow:none;border-radius:0;background:linear-gradient(90deg,transparent 48%,#785a36 48% 52%,transparent 52%),linear-gradient(transparent 48%,#785a36 48% 52%,transparent 52%)}.stone{width:85%;background:radial-gradient(at 35% 25%,#62616b,#0c0b0c 70%)}.stone.ember{background:radial-gradient(at 35% 25%,white,#ded5ca 68%,#a99b91)}.tile.num{background:#c3a7eb}.hero{float:right;width:clamp(75px,21vw,148px);height:108px;object-fit:cover;border-radius:8px;margin:0 0 8px 12px}.panel{clear:both}</style>
+.board{grid-template-columns:repeat(15,minmax(0,1fr));gap:0;padding:8px;background:#cba36f}.cell{box-shadow:none;border-radius:0;background:linear-gradient(90deg,transparent 48%,#785a36 48% 52%,transparent 52%),linear-gradient(transparent 48%,#785a36 48% 52%,transparent 52%)}.stone{width:85%;background:radial-gradient(at 35% 25%,#62616b,#0c0b0c 70%)}.stone.ember{background:radial-gradient(at 35% 25%,white,#ded5ca 68%,#a99b91)}.tile.num{background:#c3a7eb}.hero{float:right;width:clamp(75px,21vw,148px);height:108px;object-fit:cover;border-radius:8px;margin:0 0 8px 12px}.panel{clear:both}.grad-rack{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;margin:16px 0}.grad-cup{padding:6px 1px;text-align:center;border-radius:4px 4px 10px 10px;border:1px solid #a39a89;display:grid;align-content:center;gap:4px;min-height:65px;box-shadow:inset 3px 0 6px #0002}.grad-cup strong{font-size:23px}.grad-cup select{width:100%;min-width:0;padding:0;min-height:40px}.grad-cup.g0{background:#171719;color:#fff}.grad-cup.g1{background:#55565a;color:white}.grad-cup.g2{background:#aeadae;color:#161619}.grad-cup.g3{background:#f1eee6;color:#161619}.grad-shown{display:flex;gap:12px;align-items:center;margin:12px 0}.grad-shown .grad-cup{min-width:70px}.grad-rack button:disabled{opacity:.27}</style>
 </head>
 <body><main>
 <a href="./">‹ 所有遊戲</a>
@@ -48,11 +48,12 @@ summary{cursor:pointer} .wordlist{margin:8px 0;max-height:150px;overflow:auto;li
 const $=id=>document.getElementById(id);
 const panel=$('game');
 const sections={
+  grad:['漸層','睇對手嘅杯色，估佢今輪出大定出細。','三人抽籤，1、2 號先對戰，3 號輪候。每場重新秘密配七杯，兩端黑色，向中央逐級變淺。0 至 9 各有兩粒，每杯放一粒，由左至右數字不可遞減，總和最多 30。首場由 1 號先手，其後每回合由上一回合勝方先出杯，平手維持先手。後手只會見到杯色，揀好先一齊揭數。大數得 1 分，平手無分，出過嘅杯不能再用。每場七回合，高分者勝，領先至無法追平可提早完場。全場平分則原班兩人重賽。勝方留場對輪候者並先手，首先累積兩場勝利即晉級。'],
   line:['點數五子棋','輪流揀三點，秘密競投棋位。','黑棋先選。每輪揀橫、直或斜線上連續三個空位。每人收 10 點，每格暗投至少 1 整點，高價落子，同價歸非選位方。餘點減半向下取整後帶入下輪。同步落完三子先判定，恰好五連先計，六連以上無效。同輪比較五連條數。'],
   tower:['算式之塔','鬥少步報價，再親手砌出目標算式。','三人搶報步數，每人只可報一次。其餘人可報更少步，最低者獨自示範。每步可搬頂部一組積木，可反轉整組，亦可原地翻轉。指定高度、指定結果、所報步數要全部吻合。由頂向下讀，頂層必須係無符號數字，先乘後加減。首報成功加 1、失敗扣 1；後報加扣 2。塔形帶入下一題。先到 7 分完場，包尾同分加賽。'],
   words:['隱藏詞語','保護自己嘅秘密詞，同時估中對手嘅詞。','抽籤定次序，每人獲五個普通名詞。第一輪五揀一，第二輪從餘下四個再揀。每階段出題人最多提供十個名詞線索，公開相似度，達 95% 即停，否則系統補最高相似度提示。其他人暗中作答，齊人先揭曉。每個秘密詞可花一枚 Piece 加答一次。估中者各得 1 分並結束該題。全員估錯，出題人按階段得 1、2、3 分。每題最多三階段，第二輪全部分數加倍。繁中版用本地詞庫評分。']
 };
-const order={words:[49,11],tower:[50,12],line:[51,13]};
+const order={words:[49,11],tower:[50,12],line:[51,13],grad:[57,13]};
 let active='words';
 function el(parent,tag,text='',className=''){
   const node=document.createElement(tag);
@@ -73,7 +74,7 @@ function selectGame(key){
   $('title').textContent=id+' '+title;$('episode').textContent='第 3 季・第 '+episode+' 集';$('intro').textContent=intro;$('rules').textContent=rules;
   $('hero').src=(typeof coverData==='undefined'?'./art/game-'+id+'.webp':coverData[id]);
   document.title=title+'｜策略挑戰';tabs();
-  ({line:lineLobby,tower:towerLobby,words:wordLobby})[active]();
+  ({grad:gradLobby,line:lineLobby,tower:towerLobby,words:wordLobby})[active]();
 }
 function choice(parent,label,entries){
   const wrap=el(parent,'label',label+' ');
@@ -384,6 +385,99 @@ function wordMatch(count){
  }
  chooseSecret()
 }
+const gradTone=[0,1,2,3,2,1,0],gradColors=['黑','深灰','淺灰','白'];
+function gradValid(cups){
+ return cups.length===7&&cups.every((v,i)=>Number.isInteger(v)&&v>=0&&v<=9&&(!i||cups[i-1]<=v)&&(!i||i<2||cups[i-2]!==v))&&cups.reduce((a,b)=>a+b,0)<=30;
+}
+function gradDeal(){
+ const bag=Array.from({length:20},(_,i)=>i%10);
+ for(;;){const row=shuffle(bag).slice(0,7).sort((a,b)=>a-b);if(gradValid(row))return row}
+}
+function gradLobby(){
+ panel.replaceChildren();el(panel,'h2','三人擂台');
+ const row=el(panel,'div','','row actions');
+ button(row,'自己玩 · 對兩位電腦',()=>gradMatch(true),'primary');
+ button(row,'三人同機',()=>gradMatch(false));
+}
+function gradMatch(cpu){
+ const names=cpu?['你','電腦 A','電腦 B']:['玩家 1','玩家 2','玩家 3'];
+ let [a,b,waiting]=shuffle([0,1,2]),wins=[0,0,0],duel=0,lead,rows,used,score,history,chosen;
+ const human=p=>!cpu||p===0,other=p=>p===a?b:a;
+ function screen(title){
+  panel.replaceChildren();el(panel,'p','第 '+duel+' 場 · '+names[a]+' 對 '+names[b]+'　｜　輪候：'+names[waiting],'caption');
+  el(panel,'h2',title);el(panel,'p',names.map((n,i)=>n+' '+wins[i]+' 勝').join('　'),'caption');
+ }
+ function handover(p,action){
+  if(cpu){action();return}
+  screen('請交機畀'+names[p]);button(panel,'已交機，打開屏風',action,'primary');
+ }
+ function begin(){duel++;lead=a;rows={};used={[a]:new Set(),[b]:new Set()};score={[a]:0,[b]:0};history=[];chosen={};
+  screen('重新分配數字方塊');status(names[lead]+' 先手');button(panel,'開始配杯',()=>setup(a),'primary');
+ }
+ function ready(p,row){rows[p]=row;if(p===a)setup(b);else nextRound()}
+ function setup(p){
+  if(!human(p)){ready(p,gradDeal());return}
+  handover(p,()=>{
+   let row=gradDeal();
+   screen(names[p]+' · 屏風後配杯');el(panel,'p','每杯一粒，由左至右細至大。每個數字最多用兩次，七杯總和最多 30。');
+   const rack=el(panel,'div','','grad-rack');
+   const picks=row.map((v,i)=>{const label=el(rack,'label','','grad-cup g'+gradTone[i]);el(label,'span',gradColors[gradTone[i]]);
+    const select=el(label,'select');select.setAttribute('aria-label','第 '+(i+1)+' 杯數字');
+    for(let n=0;n<=9;n++){const o=el(select,'option',String(n));o.value=n}select.value=v;
+    select.onchange=()=>{row[i]=+select.value;update()};return select});
+   const msg=status();button(panel,'隨機配杯',()=>{row=gradDeal();picks.forEach((v,i)=>v.value=row[i]);update()});
+   const lock=button(panel,'封存七杯',()=>{if(gradValid(row))ready(p,row.slice())},'primary');
+   function update(){const valid=gradValid(row);lock.disabled=!valid;msg.textContent='總和 '+row.reduce((a,b)=>a+b,0)+' / 30'+(valid?'':'　請檢查排列、數字用量同總和。')}update();
+  })
+ }
+ function nextRound(){chosen={};pick(lead)}
+ function log(){
+  if(!history.length)return;
+  const details=el(panel,'details');el(details,'summary','已揭曉嘅回合');
+  history.forEach((r,i)=>el(details,'p','第 '+(i+1)+' 回合 · '+[a,b].map(p=>names[p]+' '+gradColors[r[p].tone]+'杯 '+r[p].value).join(' ／ ')))
+ }
+ function cpuChoice(p,options,shownTone){
+  if(shownTone===null)return shuffle(options)[0];
+  // Estimate the opposing value from public colours and previous reveals only.
+  const rival=other(p),scores=options.map(()=>0);
+  for(let t=0;t<160;t++){
+   const guess=gradDeal(),slots=[0,1,2,3,4,5,6];let weight=1;
+   for(const r of history){const target=r[rival];const same=slots.filter(k=>gradTone[k]===target.tone);
+    if(!same.length){weight=0;break}
+    same.sort((x,y)=>Math.abs(guess[x]-target.value)-Math.abs(guess[y]-target.value));const k=same[0];
+    weight/=1+Math.abs(guess[k]-target.value);slots.splice(slots.indexOf(k),1)}
+   const possible=slots.filter(k=>gradTone[k]===shownTone);
+   for(const k of possible)options.forEach((i,j)=>{const n=rows[p][i];scores[j]+=weight*(Math.sign(n-guess[k])-0.055*n)/possible.length});
+  }
+  return options[scores.indexOf(Math.max(...scores))];
+ }
+ function pick(p){
+  const first=p===lead,op=other(p),tone=first?null:gradTone[chosen[op]],options=rows[p].map((_,i)=>i).filter(i=>!used[p].has(i));
+  if(!human(p)){submit(cpuChoice(p,options,tone));return}
+  handover(p,()=>{screen('第 '+(history.length+1)+' 回合 · '+names[p]+' 揀杯');
+   el(panel,'p',names[a]+' '+score[a]+'：'+score[b]+' '+names[b]);
+   if(!first){const shown=el(panel,'div','','grad-shown');el(shown,'span',gradColors[tone]+'杯','grad-cup g'+tone);el(shown,'span',names[op]+' 已出杯')}
+   const rack=el(panel,'div','','grad-rack');rows[p].forEach((n,i)=>{const cup=button(rack,'',()=>submit(i),'grad-cup g'+gradTone[i]);el(cup,'small',gradColors[gradTone[i]]);el(cup,'strong',String(n));cup.disabled=used[p].has(i);cup.setAttribute('aria-label','第 '+(i+1)+' 杯，'+n)});
+   log()
+  })
+  function submit(i){chosen[p]=i;used[p].add(i);if(first)pick(op);else reveal()}
+ }
+ function reveal(){
+  const entry={};for(const p of [a,b])entry[p]={value:rows[p][chosen[p]],tone:gradTone[chosen[p]]};history.push(entry);
+  const diff=entry[a].value-entry[b].value;if(diff){lead=diff>0?a:b;score[lead]++}
+  screen('第 '+history.length+' 回合 · 揭杯');const tray=el(panel,'div','','grad-shown');
+  for(const p of [a,b]){const cup=el(tray,'div','','grad-cup g'+entry[p].tone);el(cup,'small',names[p]);el(cup,'strong',String(entry[p].value))}
+  status((diff?names[lead]+' 贏 1 分':'平手，雙方 0 分')+'　｜　'+names[a]+' '+score[a]+'：'+score[b]+' '+names[b]);log();
+  if(history.length<7&&Math.abs(score[a]-score[b])<=7-history.length){button(panel,'下一回合 · '+names[lead]+' 先手',nextRound,'primary');return}
+  if(score[a]===score[b]){el(panel,'p','全場平分，原班兩人重新配杯再賽。');button(panel,'重賽',begin,'primary');return}
+  const winner=score[a]>score[b]?a:b;wins[winner]++;
+  if(wins[winner]===2){el(panel,'h2',names[winner]+' 累積兩場勝利，晉級決賽！');button(panel,'再玩',gradLobby,'primary');return}
+  el(panel,'p',names[winner]+' 贏出本場，下一場對 '+names[waiting]+'。');
+  button(panel,'下一場',()=>{const loser=other(winner);a=winner;b=waiting;waiting=loser;begin()},'primary');
+ }
+ begin()
+}
+
 selectGame(document.documentElement.dataset.game||new URLSearchParams(location.search).get('game'));
 </script>
 </body>
