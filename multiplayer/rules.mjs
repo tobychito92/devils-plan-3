@@ -14,13 +14,16 @@ export const edges = points.flatMap(point => {
 const neighbors = points.map(point => edges.flatMap(([a, b]) => a === point ? [b] : b === point ? [a] : []));
 export const sheep = '羊', tiger = '虎';
 
-export function newGame() {
+function singleBoard() {
   return {
     board: points.map(point => [0, 4, 20, 24].includes(point) ? tiger : ''),
     turn: sheep, reserve: 20, caught: 0, quiet: 0, outcome: ''
   };
 }
 
+export function newGame() {
+  return {...singleBoard(), lane:0, waitingBoard:singleBoard()};
+}
 export function movesFrom(board, from) {
   return neighbors[from].flatMap(to => {
     if (!board[to]) return [{to, take: -1}];
@@ -54,5 +57,9 @@ export function playMove(state, side, from, to) {
   else if (next.turn === tiger && !canMove()) next.outcome = '羊方困住所有虎，勝出';
   else if (next.turn === sheep && !next.reserve && !canMove()) next.outcome = '羊方無棋可移動，和局';
   else if (next.quiet >= 100) next.outcome = '連續 100 步無捕獲，和局';
+  if (!next.outcome && next.turn===sheep && state.waitingBoard) {
+    const {waitingBoard,lane,...finishedBoard}=next;
+    return {...waitingBoard,lane:1-lane,waitingBoard:finishedBoard};
+  }
   return next;
 }

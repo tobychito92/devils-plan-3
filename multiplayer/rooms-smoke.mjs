@@ -119,11 +119,12 @@ function answer(game,seed,question=1) {
     }
     return chosen;
   }
-  const starts=range(25).filter(i=>i%2===0);
+  const size=6+(question-1)%3;
+  const starts=range((size*size)).filter(i=>i%2===0);
   for(let i=starts.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[starts[i],starts[j]]=[starts[j],starts[i]]}
-  const adj=range(25).map(i=>range(25).filter(j=>Math.abs(i%5-j%5)*Math.abs(Math.floor(i/5)-Math.floor(j/5))===2));
+  const adj=range((size*size)).map(i=>range((size*size)).filter(j=>Math.abs(i%size-j%size)*Math.abs(Math.floor(i/size)-Math.floor(j/size))===2));
   function solve(path){
-    if(path.length===25)return path;
+    if(path.length===(size*size))return path;
     const free=i=>adj[i].filter(j=>!path.includes(j));
     for(const step of free(path.at(-1)).sort((a,b)=>free(a).length-free(b).length)){
       const result=solve([...path,step]);

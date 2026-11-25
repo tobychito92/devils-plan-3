@@ -98,7 +98,7 @@ export class GameRoom extends DurableObject {
         if (action !== 'move') return fail('move', 422);
         if (room.seats.length < 2) return fail('waiting', 409);
         if (body.version !== room.version) return fail('stale', 409);
-        const next = playMove(room.state, seat === 0 ? sheep : tiger, body.from, body.to);
+        const next = playMove(room.state, seat === (room.state.lane||0) ? sheep : tiger, body.from, body.to);
         if (!next) return fail('move', 422);
         room.state = next;
         room.version++;

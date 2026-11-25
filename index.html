@@ -71,12 +71,12 @@ const $=s=>document.getElementById(s), games=[
 [44,'環形圍欄','Loop Fence Puzzle','點兩個黑點之間嘅邊，依次切換線、交叉記號、留白。每格數字代表四邊嘅線數，所有線要連成一個圈。'],
 [48,'圍牆圍棋 II','Wall Go II','揀人數開局。方棋直行一至兩格；圓棋行一格後可以轉彎再行一格。行完直接撳棋格旁邊亮起嘅牆槽。領地分隔後計格數，同分鬥最大單幅領地。'],
 [13,'九子棋','Nine Men’s Morris','本機雙人。每方九粒棋，輪流放滿後沿線移動。三粒成線可食一粒對手棋，優先食未成線嘅棋。剩三粒可以飛去任何空點，剩兩粒或無棋可行就輸。'],
-[15,'盲五子棋','Blind Gomoku','本機雙人。棋色平時隱藏，此版本每六步揭示一次。橫、直或斜連五粒即勝。'],
+[15,'盲五子棋','Blind Gomoku','本機雙人。棋面顏色隱藏陣營，完局先揭底。橫、直或斜連五粒即勝。'],
 [28,'猜大小','Big and Small','輪流出暗牌同押大小。暗牌大過莊家就賺差額，押中亦可贏籌碼。'],
 [29,'虎羊棋','Bagh-Chal','本機雙人。四隻虎對二十隻羊，羊方先逐隻放棋，放完先可移動。虎沿線跳過一隻羊可以捕獲，捕五隻就贏。羊方困住四隻虎就贏。'],
 [30,'問題與真相','Question & Truth','本機雙人，各自秘密排八張牌。暗投代幣爭取提問或猜對手嘅牌序。'],
 [21,'狙擊撲克','Sniper Hold’em','兩輪下注後，可以狙擊指定牌型。最強未被狙擊嘅牌贏彩池，交回 75 籌碼晉級。'],
-[31,'騎士巡遊','Knight’s Tour','行日字步，走遍 5×5 棋盤，每格只可踏一次。㩒亮起嘅格移動，可以退步或睇提示。'],
+[31,'騎士巡遊','Knight’s Tour','依次走遍 6×6、7×7、8×8 棋盤，每格只可踏一次。'],
 [37,'Heavy 13','Heavy 13','秘密揀重量同顏色籌碼。令任何一磅到 13 或以上就會受罰。14 輪後罰分最多嘅兩位出局。'],
 [40,'找不同','Spot the Difference','先記住原相，再喺改動相上標記五處變化。每組三回合，每處答啱得一分。'],
 [47,'對稱拼圖','Symmetry Puzzle','用齊同色拼件砌成一個左右對稱嘅形狀。拼件可以旋轉，唔可以翻面。砌好藍、紅、綠三組先提交。'],[6,'單字塔','Word Tower','七人合作砌字'],[14,'六角形','Hexagon','雙人記憶搶答']];
@@ -505,10 +505,10 @@ function millCourt(){
   render();
 }
 function fogLinks(){
-  const n=9,board=Array(n*n).fill(0),marks=['','●','◆'];
-  let turn=1,moves=0,winner=0,revealed=false;
+  const n=15,board=Array(n*n).fill(0),covers=Array(n*n),marks=['','●','◆'];
+  let turn=1,moves=0,winner=0;
   function play(i){
-    board[i]=turn;moves++;
+    board[i]=turn;covers[i]=['🔴','🟡','🟢','🔵','🟣'][Math.floor(gameRandom()*5)];moves++;
     const r=(i/n)|0,c=i%n;
     for(const [dr,dc] of [[1,0],[0,1],[1,1],[1,-1]]){
       let chain=1;
@@ -519,72 +519,100 @@ function fogLinks(){
       }
       if(chain>=5){winner=turn;break}
     }
-    if(!winner&&moves<n*n){turn=3-turn;revealed=moves%6===0}
+    if(!winner&&moves<n*n)turn=3-turn;
     render();
   }
   function render(){
     const done=!!winner||moves===n*n;
     if(online)online.focus(turn-1,false,done);
-    challengeGrid(n,i=>done||revealed?marks[board[i]]:board[i]?'◉':'',i=>!done&&!revealed&&!board[i],play);
-    challengeStatus(done?(winner?marks[winner]+' 五連勝出':'滿盤平手'):revealed?'全盤揭示。記住棋子位置。':marks[turn]+' 落子　｜　第 '+(moves+1)+' 步',done);
-    if(revealed&&!done)challengeButton($('controls'),'收起棋色，繼續',()=>{revealed=false;render()});
+    challengeGrid(n,i=>done?marks[board[i]]:covers[i]||'',i=>!done&&!board[i],play);
+    challengeStatus(done?(winner?marks[winner]+' 五連勝出':'滿盤平手'):marks[turn]+' 落子　｜　第 '+(moves+1)+' 步',done);
   }
   render();
 }
 function openTigerInvite(){start(games.findIndex(game=>game[0]===29));window.ridgeOnline()}
 function ridgeEscape(){
-  const n=5,points=seq(25),board=Array(25).fill('');
-  const edges=[];
-  for(const i of points){
-    const row=Math.floor(i/n),col=i%n;
-    if(col<n-1)edges.push([i,i+1]);
-    if(row<n-1)edges.push([i,i+n]);
-    if(i%2===0&&row<n-1){
-      if(col>0)edges.push([i,i+n-1]);
-      if(col<n-1)edges.push([i,i+n+1]);
-    }
+const points = Array.from({length: 25}, (_, index) => index);
+const row = point => Math.floor(point / 5);
+const column = point => point % 5;
+const edges = points.flatMap(point => {
+  const links = [];
+  if (column(point) < 4) links.push(point + 1);
+  if (row(point) < 4) {
+    links.push(point + 5);
+    if (point % 2 === 0 && column(point) > 0) links.push(point + 4);
+    if (point % 2 === 0 && column(point) < 4) links.push(point + 6);
   }
-  const connected=(i,j)=>edges.some(([a,b])=>i===a&&j===b||i===b&&j===a);
-  for(const i of [0,4,20,24])board[i]='虎';
-  let turn='羊',reserve=20,selected=-1,caught=0,outcome='',quiet=0;
-  function options(i){
-    const result=[];
-    for(const j of points){
-      if(!connected(i,j))continue;
-      if(!board[j])result.push({to:j,take:-1});
-      if(board[i]!=='虎'||board[j]!=='羊')continue;
-      const row=2*Math.floor(j/n)-Math.floor(i/n),col=2*(j%n)-i%n;
-      if(row>=0&&row<n&&col>=0&&col<n&&!board[row*n+col]&&connected(j,row*n+col))result.push({to:row*n+col,take:j});
-    }
-    return result;
+  return links.map(neighbor => [point, neighbor]);
+});
+const neighbors = points.map(point => edges.flatMap(([a, b]) => a === point ? [b] : b === point ? [a] : []));
+const sheep = '羊', tiger = '虎';
+
+function singleBoard() {
+  return {
+    board: points.map(point => [0, 4, 20, 24].includes(point) ? tiger : ''),
+    turn: sheep, reserve: 20, caught: 0, quiet: 0, outcome: ''
+  };
+}
+
+function newGame() {
+  return {...singleBoard(), lane:0, waitingBoard:singleBoard()};
+}
+function movesFrom(board, from) {
+  return neighbors[from].flatMap(to => {
+    if (!board[to]) return [{to, take: -1}];
+    if (board[from] !== tiger || board[to] !== sheep) return [];
+    const landingRow = 2 * row(to) - row(from);
+    const landingColumn = 2 * column(to) - column(from);
+    if (landingRow < 0 || landingRow > 4 || landingColumn < 0 || landingColumn > 4) return [];
+    const landing = 5 * landingRow + landingColumn;
+    return !board[landing] && neighbors[to].includes(landing) ? [{to: landing, take: to}] : [];
+  });
+}
+
+function playMove(state, side, from, to) {
+  if (state.outcome || side !== state.turn || !points.includes(to) || state.board[to]) return null;
+  const placing = side === sheep && state.reserve > 0;
+  const move = placing ? (from === null ? {take: -1} : null) :
+    points.includes(from) && state.board[from] === side && movesFrom(state.board, from).find(move => move.to === to);
+  if (!move) return null;
+
+  const next = {...state, board: [...state.board], turn: side === sheep ? tiger : sheep};
+  next.board[to] = side;
+  if (placing) next.reserve--;
+  else next.board[from] = '';
+  if (move.take >= 0) {
+    next.board[move.take] = '';
+    next.caught++;
   }
-  function play(i){
-    if(board[i]===turn){selected=selected===i?-1:i;render();return}
-    if(turn==='羊'&&reserve){board[i]='羊';reserve--;quiet=0}
-    else{
-      const move=options(selected).find(x=>x.to===i);
-      board[selected]='';board[i]=turn;
-      if(move.take>=0){board[move.take]='';caught++;quiet=0}else quiet++;
-    }
-    turn=turn==='羊'?'虎':'羊';selected=-1;
-    if(caught>=5)outcome='虎方捕獲五隻羊，勝出';
-    else if(turn==='虎'&&!board.some((v,j)=>v==='虎'&&options(j).length))outcome='羊方困住所有虎，勝出';
-    else if(turn==='羊'&&!reserve&&!board.some((v,j)=>v==='羊'&&options(j).length))outcome='羊方無棋可移動，和局';
-    else if(quiet>=100)outcome='連續 100 步無捕獲，和局';
-    render();
+  next.quiet = placing || move.take >= 0 ? 0 : state.quiet + 1;
+  const canMove = () => next.board.some((piece, point) => piece === next.turn && movesFrom(next.board, point).length);
+  if (next.caught >= 5) next.outcome = '虎方捕獲五隻羊，勝出';
+  else if (next.turn === tiger && !canMove()) next.outcome = '羊方困住所有虎，勝出';
+  else if (next.turn === sheep && !next.reserve && !canMove()) next.outcome = '羊方無棋可移動，和局';
+  else if (next.quiet >= 100) next.outcome = '連續 100 步無捕獲，和局';
+  if (!next.outcome && next.turn===sheep && state.waitingBoard) {
+    const {waitingBoard,lane,...finishedBoard}=next;
+    return {...waitingBoard,lane:1-lane,waitingBoard:finishedBoard};
   }
-  function canPlay(i){
-    if(outcome)return false;
-    if(turn==='羊'&&reserve)return !board[i];
-    return board[i]===turn&&options(i).length>0||selected>=0&&options(selected).some(x=>x.to===i);
-  }
-  function render(){
-    pointBoard(n,points,edges,i=>board[i],canPlay,play);
-    if(selected>=0)$('board').firstChild.querySelectorAll('button')[selected].classList.add('challengeSelected');
-    challengeStatus(outcome||turn+'方'+(turn==='羊'&&reserve?'放羊':'行棋')+'　｜　待放羊 '+reserve+'　｜　被捕 '+caught+'/5',!!outcome);
-    if(window.ridgeOnline)challengeButton($('controls'),'雙人連線',window.ridgeOnline);
-  }
-  render();
+  return next;
+}
+
+ let state=newGame(),selected=-1;
+ function render(){
+  const placing=state.turn===sheep&&state.reserve>0;
+  const moves=selected<0?[]:movesFrom(state.board,selected);
+  const active=i=>!state.outcome&&(placing?!state.board[i]:state.board[i]===state.turn||moves.some(m=>m.to===i));
+  pointBoard(5,points,edges,i=>state.board[i],active,i=>{
+   if(!placing&&state.board[i]===state.turn){selected=selected===i?-1:i;render();return}
+   const next=playMove(state,state.turn,placing?null:selected,i);if(next){state=next;selected=-1;render()}
+  });
+  const player=(state.turn===sheep?state.lane:1-state.lane)+1;
+  const label='棋盤 '+(state.lane+1)+' · 羊方玩家 '+(1+state.lane)+' ／ 虎方玩家 '+(2-state.lane);
+  challengeStatus(label+'　'+(state.outcome||'玩家 '+player+'（'+state.turn+'）'+(placing?'放羊':'行棋')+'　被捕 '+state.caught+'/5'),!!state.outcome);
+  if(window.ridgeOnline)challengeButton($('controls'),'雙人連線',window.ridgeOnline);
+ }
+ render();
 }
 function gameTable(title, detail=''){
   const board=$('board');
@@ -1272,42 +1300,26 @@ function sumThirteen(){
   challengeButton(tableActions(board),'開始對戰',()=>choose());
 }
 
-function knightTour(){
-  const size=5,points=seq(size*size);
+function knightTour(stage=0){
+  const size=6+(online||raceFinish?(round-1)%3:stage),points=seq(size*size);
   const edges=points.map(i=>points.filter(j=>{
     const dx=Math.abs(i%size-j%size),dy=Math.abs(Math.floor(i/size)-Math.floor(j/size));
     return dx*dy===2;
   }));
   const route=[shuffle(points.filter(i=>i%2===0))[0]];
   if(online?.raceCheck){
-    online.verify=proof=>validIndices(proof,25,25)&&proof[0]===route[0]&&proof.slice(1).every((point,i)=>edges[proof[i]].includes(point))?0:null;
+    online.verify=proof=>validIndices(proof,points.length,points.length)&&proof[0]===route[0]&&proof.slice(1).every((point,i)=>edges[proof[i]].includes(point))?0:null;
     return;
   }
   function play(i){route.push(i);render()}
-  function search(current,seen,budget){
-    if(seen.size===points.length)return true;
-    if(--budget.left<0)return false;
-    const available=i=>edges[i].filter(j=>!seen.has(j));
-    for(const i of available(current).sort((a,b)=>available(a).length-available(b).length)){
-      seen.add(i);
-      if(search(i,seen,budget))return true;
-      seen.delete(i);
-    }
-    return false;
-  }
   function render(hint=-1,checked=false){
     const current=route.at(-1),moves=edges[current].filter(i=>!route.includes(i)),won=route.length===points.length;
     challengeGrid(size,i=>i===current?'♞':route.includes(i)?String(route.indexOf(i)+1):moves.includes(i)?'·':'',i=>!won&&moves.includes(i),play);
     const buttons=$('board').firstChild.children;
     if(hint>=0)buttons[hint].classList.add('challengeSelected');
-    challengeStatus(won?'完成！25 格各行過一次。':'已到訪 '+route.length+'/25 格。 '+(checked&&hint<0?'未搵到可完成嘅下一步，試吓退一步。':!moves.length?'行唔通，退一步再試。':''),won);
-    if(won){if(raceFinish)raceFinish([...route]);return}
-    challengeButton($('controls'),'退一步',()=>{route.pop();render()},route.length>1);
-    challengeButton($('controls'),'提示',()=>{
-      const budget={left:40000};
-      const candidate=moves.find(i=>search(i,new Set([...route,i]),budget));
-      render(candidate??-1,true);
-    },moves.length>0);
+    challengeStatus(won?'完成 '+size+'×'+size+' 棋盤。':'已到訪 '+route.length+'/'+points.length+' 格。'+(!moves.length?' 無路可行，請重試本關。':''),won&&size===8);
+    if(won){if(raceFinish)raceFinish([...route]);else if(size<8)challengeButton($('controls'),'下一關',()=>knightTour(stage+1));return}
+    challengeButton($('controls'),'重試本關',()=>{route.splice(1);render()});
   }
   render();
 }

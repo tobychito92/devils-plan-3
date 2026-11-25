@@ -137,7 +137,7 @@ window.ridgeOnline = function open() {
   function schedule() {
     clearTimeout(timeout);
     if (!signal.aborted && snapshot && !snapshot.state.outcome && !document.hidden) {
-      const side = snapshot.seat === 0 ? sheep : tiger;
+      const side = snapshot.seat === (snapshot.state.lane||0) ? sheep : tiger;
       if (connected && snapshot.names.length === 2 && snapshot.state.turn === side) return;
       timeout = setTimeout(refresh, connected ? 2000 : 5000);
     }
@@ -170,7 +170,7 @@ window.ridgeOnline = function open() {
 
   function render() {
     const {state, seat, names} = snapshot;
-    const side = seat === 0 ? sheep : tiger;
+    const side = seat === (state.lane||0) ? sheep : tiger;
     const placing = side === sheep && state.reserve > 0;
     const myTurn = connected && names.length === 2 && !state.outcome && state.turn === side;
     const destinations = selected < 0 ? [] : movesFrom(state.board, selected);
@@ -183,7 +183,7 @@ window.ridgeOnline = function open() {
     const roomInfo = document.createElement('div');
     roomInfo.className = 'online-room-info';
     line('房號 ' + code + ' ｜ 你係' + side + '方', roomInfo);
-    line('羊方 ' + names[0] + ' ｜ 虎方 ' + (names[1] || '等候加入'), roomInfo);
+    line('棋盤 '+((state.lane||0)+1)+' ｜ 羊方 ' + names[state.lane||0] + ' ｜ 虎方 ' + (names[1-(state.lane||0)] || '等候加入'), roomInfo);
     board.prepend(roomInfo);
     notice.textContent = connected ? state.outcome || (names.length < 2 ? '等朋友加入…' :
       (myTurn ? '輪到你' : '等對手') + '・' + state.turn + '方' + (state.turn === sheep && state.reserve ? '放羊' : '行棋') +
