@@ -38,6 +38,7 @@ summary{cursor:pointer} .wordlist{margin:8px 0;max-height:150px;overflow:auto;li
 <a href="./">‹ 所有遊戲</a>
 <nav aria-label="挑戰選擇" id="tabs"></nav>
 <h1 id="title"></h1>
+<p id="episode" class="caption"></p>
 <p id="intro" class="sub"></p>
 <details><summary>遊戲玩法</summary><p id="rules"></p></details>
 <section id="game" class="panel"></section>
@@ -51,7 +52,8 @@ const sections={
   tower:['移塔算式','搬動積木，砌出指定高度同數值。','每步可以搬一粒頂層積木去另一座塔，或者交換兩座塔嘅頂層積木。由下至上計，最低一粒只計數字，其餘積木按自己嘅符號逐步運算。任一座塔符合目標即完成。'],
   words:['詞語溫度','輸入繁中詞語，靠相似度搵秘密詞。','電腦抽詞，或者由朋友喺同一部機秘密揀詞。每局有 12 次有效猜測。分數取決於共同語義標籤同類別，100 代表猜中。可以查看字庫、攞提示或揭曉答案。']
 };
-let active='line';
+const order={words:[49,11],tower:[50,12],line:[51,13]};
+let active='words';
 function el(parent,tag,text='',className=''){
   const node=document.createElement(tag);
   node.className=className;node.textContent=text;parent.append(node);return node;
@@ -60,14 +62,15 @@ function button(parent,label,click,className=''){
   const node=el(parent,'button',label,className);node.type='button';node.onclick=click;return node;
 }
 function status(text=''){const node=el(panel,'p',text,'status');node.setAttribute('role','status');return node}
-function tabs(){ $('tabs').replaceChildren();for(const [key,item] of Object.entries(sections)){
-  const node=button($('tabs'),item[0],()=>selectGame(key));
+function tabs(){ $('tabs').replaceChildren();for(const [key,[id]] of Object.entries(order)){
+  const node=button($('tabs'),id+' '+sections[key][0],()=>selectGame(key));
   node.setAttribute('aria-pressed',String(key===active));
 }}
 function selectGame(key){
-  active=Object.hasOwn(sections,key)?key:'line';
+  active=Object.hasOwn(sections,key)?key:'words';
   const [title,intro,rules]=sections[active];
-  $('title').textContent=title;$('intro').textContent=intro;$('rules').textContent=rules;
+  const [id,episode]=order[active];
+  $('title').textContent=id+' '+title;$('episode').textContent='第 3 季・第 '+episode+' 集';$('intro').textContent=intro;$('rules').textContent=rules;
   document.title=title+'｜策略挑戰';tabs();
   ({line:lineLobby,tower:towerLobby,words:wordLobby})[active]();
 }
@@ -404,7 +407,7 @@ function startWords(secret=shuffle([...wordIndex.keys()].filter(word=>word!==las
   }
   paint();
 }
-selectGame(new URLSearchParams(location.search).get('game'));
+selectGame(document.documentElement.dataset.game||new URLSearchParams(location.search).get('game'));
 </script>
 </body>
 </html>

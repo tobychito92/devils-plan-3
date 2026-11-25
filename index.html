@@ -61,7 +61,7 @@
 .heavy-choices button:disabled{opacity:.42}
 .heavy-score{display:flex;flex-wrap:wrap;gap:5px 12px;font-size:13px}
 @media(max-width:430px){.table-tray{gap:6px}.table-card{width:38px;height:51px}.heavy-board{gap:5px}.heavy-stones .table-stone{width:23px;height:21px}}
-</style><style>.original-games{margin-top:24px}.original-games .list a{display:grid;gap:3px;color:inherit;text-decoration:none;background:#2e2530;border:1px solid #695540;border-radius:8px;padding:12px}.original-games .list a:hover{border-color:#d9b482}.original-games small{color:#d1bb9f}.game-rules{margin:12px 0;padding:8px 12px;border:1px solid #806b54;border-radius:6px}.game-rules summary{cursor:pointer;font-weight:700;padding:4px 0}.game-rules ol{padding-inline-start:24px;margin:8px 0 4px}.game-rules li+li{margin-top:7px}.online-room-info p{margin:3px 0;font-size:14px}.online-room-info{margin-bottom:12px}#board input{max-width:100%;width:132px}</style><link rel="stylesheet" href="./art/arena.css?v=wall-pieces2"><main><header><span>THE DEVIL’S PLAN</span><span>DEAD AGAIN</span></header><section id="home"><div class="arena-hero"><h1>魔鬼的計謀</h1><p>單人挑戰・本機對戰・網上開房</p></div><div class="list" id="menu"></div><section class="original-games" aria-labelledby="original-heading"><h2 id="original-heading">原創挑戰</h2><div class="list"><a href="./challenges.html?game=line"><strong>競投連線</strong><small>雙人暗標 · 四連棋</small></a><a href="./challenges.html?game=tower"><strong>移塔算式</strong><small>單人解謎 · 最少步數</small></a><a href="./challenges.html?game=words"><strong>詞語溫度</strong><small>繁中猜詞 · 相似度</small></a></div></section><footer>非官方可玩版 · 題板重繪</footer></section><section id="play" hidden><button class="link" onclick="lobby()">‹ 所有遊戲</button><h2 id="title"></h2><button id="online-entry" hidden>網上開房／加入</button><div id="room-status" role="status" hidden></div><p id="hint"></p><details class="game-rules" id="game-rules"><summary>遊戲玩法</summary><ol></ol></details><div class="panel" id="board"></div><div id="controls" class="bar"></div><div class="msg" id="msg" role="status"></div></section></main>
+</style><style>.season-section{margin-top:24px}.season-section h2{margin:0}.season-section .list{margin-top:9px}.entry-challenge{min-height:76px}.game-rules{margin:12px 0;padding:8px 12px;border:1px solid #806b54;border-radius:6px}.game-rules summary{cursor:pointer;font-weight:700;padding:4px 0}.game-rules ol{padding-inline-start:24px;margin:8px 0 4px}.game-rules li+li{margin-top:7px}.online-room-info p{margin:3px 0;font-size:14px}.online-room-info{margin-bottom:12px}#board input{max-width:100%;width:132px}</style><link rel="stylesheet" href="./art/arena.css?v=wall-pieces2"><main><header><span>THE DEVIL’S PLAN</span><span>DEAD AGAIN</span></header><section id="home"><div class="arena-hero"><h1>魔鬼的計謀</h1><p>單人挑戰・本機對戰・網上開房</p></div><div id="menu"></div><footer>非官方可玩版 · 題板重繪</footer></section><section id="play" hidden><button class="link" onclick="lobby()">‹ 所有遊戲</button><h2 id="title"></h2><button id="online-entry" hidden>網上開房／加入</button><div id="room-status" role="status" hidden></div><p id="hint"></p><details class="game-rules" id="game-rules"><summary>遊戲玩法</summary><ol></ol></details><div class="panel" id="board"></div><div id="controls" class="bar"></div><div class="msg" id="msg" role="status"></div></section></main>
 <script src="./multiplayer/how-to-play.js?v=word-tower2"></script><script>
 const $=s=>document.getElementById(s), games=[
 [33,'數立方體','Count the Cubes','數出所有方塊，包括被遮住嘅底層。每條柱由地面疊起，中間冇空位。'],
@@ -94,7 +94,31 @@ function launchRace(id,question,random,finish,startedAt){
   $('board').className='panel';$('controls').replaceChildren();$('msg').textContent='';
   ({31:knightTour,33:cube,34:rect,36:poker,40:spotDifference,42:code,44:fence,47:symmetryPuzzle})[id]();
 }
-$('menu').innerHTML=games.map(([id,name,en],i)=>({id,name,en,i})).sort((a,b)=>a.id-b.id).map(({id,name,en,i})=>'<button class="entry" onclick="start('+i+')"><img src="./art/game-'+id+'.webp'+([40,47].includes(id)?'?v=plates2':'')+'" alt="" width="372" height="500" '+(id>28?'loading="lazy"':'')+'><b>'+String(id).padStart(2,'0')+'</b><span><strong>'+name+'</strong><small>'+en+'</small></span><i>›</i></button>').join('');
+const openCatalogueChallenge=key=>location.href='./challenges.html?game='+key;
+const episodes={
+  6:[1,6],15:[1,11],13:[1,12],14:[1,12],
+  31:[2,5],21:[2,6],28:[2,12],29:[2,12],30:[2,12],
+  33:[3,1],34:[3,1],36:[3,2],37:[3,2],40:[3,6],
+  42:[3,7],44:[3,8],47:[3,10],48:[3,10],49:[3,11],50:[3,12],51:[3,13]
+};
+const catalogue=games.map(([id,name,en],i)=>({id,name,en,i}));
+catalogue.push(
+  {id:49,name:'詞語溫度',en:'Word Similarity',challenge:'words'},
+  {id:50,name:'移塔算式',en:'Tower Arithmetic',challenge:'tower'},
+  {id:51,name:'競投連線',en:'Bid for Four',challenge:'line'}
+);
+function catalogueCard({id,name,en,i,challenge}){
+  const open=challenge?'openCatalogueChallenge(&quot;'+challenge+'&quot;)':'start('+i+')';
+  const cover=challenge?'':'<img src="'+'./art/game-'+id+'.webp'+([40,47].includes(id)?'?v=plates2':'')+'" alt="" width="372" height="500" '+(id>28?'loading="lazy"':'')+'>';
+  return '<button type="button" class="entry'+(challenge?' entry-challenge':'')+'" onclick="'+open+'">'+cover+
+    '<b>'+String(id).padStart(2,'0')+'</b><span><strong>'+name+'</strong><small>第 '+episodes[id][1]+' 集</small><br><small>'+en+'</small></span><i aria-hidden="true">›</i></button>';
+}
+$('menu').innerHTML=[1,2,3].map(season=>{
+  const entries=catalogue.filter(({id})=>episodes[id][0]===season)
+    .sort((a,b)=>episodes[a.id][1]-episodes[b.id][1]||a.id-b.id);
+  return '<section class="season-section" aria-labelledby="season-'+season+'"><h2 id="season-'+season+'">第 '+season+' 季</h2><div class="list">'+entries.map(catalogueCard).join('')+'</div></section>';
+}).join('');
+
 function lobby(){stopRace();window.dispatchEvent(new Event('tiger-view-exit'));clearInterval(timer);$('home').hidden=false;$('play').hidden=true}
 function start(i){if([6,14].includes(games[i][0])){location.href="./finals.html?game="+games[i][0];return}if([40,47].includes(games[i][0])&&!window.exilePuzzles){import(new URL('./multiplayer/exile-puzzles.mjs?v=scenes20',document.baseURI).href).then(()=>start(i));return}mode=i;round=0;$('home').hidden=true;$('play').hidden=false;next();window.scrollTo?.(0,0)}
 function next(){if(raceFinish)return;window.dispatchEvent(new Event('tiger-view-exit'));clearInterval(timer);round++;finished=false;feedback='';$('play').dataset.game=games[mode][0];$('board').className='panel';$('title').textContent=games[mode][1];$('hint').textContent='';window.showGameRules?.(games[mode][0]);$('msg').textContent='';$('controls').innerHTML='';[cube,rect,poker,code,fence,wallGo,millCourt,fogLinks,cardForecast,ridgeEscape,signalQuestions,pokerExchange,knightTour,sumThirteen,spotDifference,symmetryPuzzle][mode]();
