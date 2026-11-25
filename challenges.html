@@ -32,7 +32,7 @@ button:disabled{opacity:.5;cursor:default} .primary,[aria-pressed=true]{backgrou
 .history li{display:grid;grid-template-columns:minmax(65px,1fr) 3fr 54px;align-items:center;gap:8px;padding:7px;border-bottom:1px solid var(--stroke)} meter{width:100%;height:16px;accent-color:var(--jade)}
 .guess input{flex:1;min-width:120px} .guess{margin-top:10px} details{margin:14px 0}
 summary{cursor:pointer} .wordlist{margin:8px 0;max-height:150px;overflow:auto;line-height:1.8}
-.board{grid-template-columns:repeat(15,minmax(0,1fr));gap:0;padding:8px;background:#cba36f}.cell{box-shadow:none;border-radius:0;background:linear-gradient(90deg,transparent 48%,#785a36 48% 52%,transparent 52%),linear-gradient(transparent 48%,#785a36 48% 52%,transparent 52%)}.stone{width:85%;background:radial-gradient(at 35% 25%,#62616b,#0c0b0c 70%)}.stone.ember{background:radial-gradient(at 35% 25%,white,#ded5ca 68%,#a99b91)}.tile.num{background:#c3a7eb}.hero{float:right;width:clamp(75px,21vw,148px);height:108px;object-fit:cover;border-radius:8px;margin:0 0 8px 12px}.panel{clear:both}.grad-rack{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;margin:16px 0}.grad-cup{padding:6px 1px;text-align:center;border-radius:4px 4px 10px 10px;border:1px solid #a39a89;display:grid;align-content:center;gap:4px;min-height:65px;box-shadow:inset 3px 0 6px #0002}.grad-cup strong{font-size:23px}.grad-cup select{width:100%;min-width:0;padding:0;min-height:40px}.grad-cup.g0{background:#171719;color:#fff}.grad-cup.g1{background:#55565a;color:white}.grad-cup.g2{background:#aeadae;color:#161619}.grad-cup.g3{background:#f1eee6;color:#161619}.grad-shown{display:flex;gap:12px;align-items:center;margin:12px 0}.grad-shown .grad-cup{min-width:70px}.grad-rack button:disabled{opacity:.27}</style>
+.board{grid-template-columns:repeat(15,minmax(0,1fr));gap:0;padding:8px;background:#cba36f}.cell{box-shadow:none;border-radius:0;background:linear-gradient(90deg,transparent 48%,#785a36 48% 52%,transparent 52%),linear-gradient(transparent 48%,#785a36 48% 52%,transparent 52%)}.stone{width:85%;background:radial-gradient(at 35% 25%,#62616b,#0c0b0c 70%)}.stone.ember{background:radial-gradient(at 35% 25%,white,#ded5ca 68%,#a99b91)}.tile.num{background:#c3a7eb}.hero{float:right;width:clamp(75px,21vw,148px);height:108px;object-fit:cover;border-radius:8px;margin:0 0 8px 12px}.panel{clear:both}.grad-rack{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;margin:16px 0}.grad-cup{padding:6px 1px;text-align:center;border-radius:4px 4px 10px 10px;border:1px solid #a39a89;display:grid;align-content:center;gap:4px;min-height:65px;box-shadow:inset 3px 0 6px #0002}.grad-cup strong{font-size:23px}.grad-cup select{width:100%;min-width:0;padding:0;min-height:40px}.grad-cup.g0{background:#171719;color:#fff}.grad-cup.g1{background:#55565a;color:white}.grad-cup.g2{background:#aeadae;color:#161619}.grad-cup.g3{background:#f1eee6;color:#161619}.grad-shown{display:flex;gap:12px;align-items:center;margin:12px 0}.grad-shown .grad-cup{min-width:70px}.grad-rack button:disabled{opacity:.27}.final-grid{display:grid;grid-template-columns:repeat(var(--size),minmax(0,1fr));gap:3px;max-width:465px;margin:16px auto}.final-grid button{padding:0;min-height:0;aspect-ratio:1;border-color:#77644d;background:#2c2732;font-weight:bold}.final-grid .side0{color:#a2f9e4;background:#214b45}.final-grid .side1{color:#ffc5b3;background:#623d43}.final-grid .legal{outline:2px solid #f8cc75;outline-offset:-3px}.final-grid button:disabled{opacity:.77}.equation-row{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:3px;max-width:465px;margin:7px 0;text-align:center}.equation-row span{padding:6px 0;border-radius:4px;font-weight:bold;color:#18191b}.eq-0{background:#ff8b89}.eq-1{background:#ffda70}.eq-2{background:#8befaa}</style>
 </head>
 <body><main>
 <a href="./">‹ 所有遊戲</a>
@@ -48,12 +48,16 @@ summary{cursor:pointer} .wordlist{margin:8px 0;max-height:150px;overflow:auto;li
 const $=id=>document.getElementById(id);
 const panel=$('game');
 const sections={
+  janggi:["紙牌韓國象棋", "排好移動牌，搶攻對方王棋。", "同機雙人。秘密排好五張自製移動牌，交機後公開雙方下一張牌。輪流按牌移動一粒棋，食王或用自己嘅王攻入對方王嘅起始格即勝。五張用完即重排。每局交替先手，先贏兩局勝出。"],
+  colors:["顏色連線", "用落子困住對手，或者質疑對方無法連線。", "同機雙人。8×8 棋盤有六對棋，首手落一粒，其後每手落兩粒不同色棋。只剩最後一粒時可單放。對方落子後可質疑，上一手玩家要逐色畫出橫直路線，每條至少五格，路線不得重疊。只得一個端點時，可以路線末端補上另一粒。證明成功得分，放棄則由質疑者得分。棋粒落齊亦會驗證，先到三分勝出。"],
+  lights:["算式交通燈", "秘密設題，靠紅黃綠燈拆解對方算式。", "同機雙人。每方輸入九格有效算式。雙方暗中提交九格猜測，再同時揭曉。綠色係位置正確，黃色係字元存在但位置有誤，紅色係無剩餘配對。先估中者勝出，同輪命中重賽。八輪都未估中，比較各自單次最高綠格數。"],
+
   grad:['漸層','睇對手嘅杯色，估佢今輪出大定出細。','三人抽籤，1、2 號先對戰，3 號輪候。每場重新秘密配七杯，兩端黑色，向中央逐級變淺。0 至 9 各有兩粒，每杯放一粒，由左至右數字不可遞減，總和最多 30。首場由 1 號先手，其後每回合由上一回合勝方先出杯，平手維持先手。後手只會見到杯色，揀好先一齊揭數。大數得 1 分，平手無分，出過嘅杯不能再用。每場七回合，高分者勝，領先至無法追平可提早完場。全場平分則原班兩人重賽。勝方留場對輪候者並先手，首先累積兩場勝利即晉級。'],
   line:['點數五子棋','輪流揀三點，秘密競投棋位。','黑棋先選。每輪揀橫、直或斜線上連續三個空位。每人收 10 點，每格暗投至少 1 整點，高價落子，同價歸非選位方。餘點減半向下取整後帶入下輪。同步落完三子先判定，恰好五連先計，六連以上無效。同輪比較五連條數。'],
   tower:['算式之塔','鬥少步報價，再親手砌出目標算式。','三人搶報步數，每人只可報一次。其餘人可報更少步，最低者獨自示範。每步可搬頂部一組積木，可反轉整組，亦可原地翻轉。指定高度、指定結果、所報步數要全部吻合。由頂向下讀，頂層必須係無符號數字，先乘後加減。首報成功加 1、失敗扣 1；後報加扣 2。塔形帶入下一題。先到 7 分完場，包尾同分加賽。'],
   words:['隱藏詞語','保護自己嘅秘密詞，同時估中對手嘅詞。','抽籤定次序，每人獲五個普通名詞。第一輪五揀一，第二輪從餘下四個再揀。每階段出題人最多提供十個名詞線索，公開相似度，達 95% 即停，否則系統補最高相似度提示。其他人暗中作答，齊人先揭曉。每個秘密詞可花一枚 Piece 加答一次。估中者各得 1 分並結束該題。全員估錯，出題人按階段得 1、2、3 分。每題最多三階段，第二輪全部分數加倍。繁中版用本地詞庫評分。']
 };
-const order={words:[49,11],tower:[50,12],line:[51,13],grad:[57,13]};
+const order={words:[49,11],tower:[50,12],line:[51,13],grad:[57,13],janggi:[58,14],colors:[59,14],lights:[60,14]};
 let active='words';
 function el(parent,tag,text='',className=''){
   const node=document.createElement(tag);
@@ -74,7 +78,7 @@ function selectGame(key){
   $('title').textContent=id+' '+title;$('episode').textContent='第 3 季・第 '+episode+' 集';$('intro').textContent=intro;$('rules').textContent=rules;
   $('hero').src=(typeof coverData==='undefined'?'./art/game-'+id+'.webp':coverData[id]);
   document.title=title+'｜策略挑戰';tabs();
-  ({grad:gradLobby,line:lineLobby,tower:towerLobby,words:wordLobby})[active]();
+  ({janggi:cardJanggi,colors:colorLink,lights:equationLights,grad:gradLobby,line:lineLobby,tower:towerLobby,words:wordLobby})[active]();
 }
 function choice(parent,label,entries){
   const wrap=el(parent,'label',label+' ');
@@ -476,6 +480,199 @@ function gradMatch(cpu){
   button(panel,'下一場',()=>{const loser=other(winner);a=winner;b=waiting;waiting=loser;begin()},'primary');
  }
  begin()
+}
+
+function finalGrid(size, label) {
+ const grid=el(panel,'div','','final-grid');
+ grid.style.setProperty('--size',size);grid.setAttribute('aria-label',label);
+ return grid;
+}
+const chessCards=[
+ ['直行一步',[[1,0],[0,1],[-1,0],[0,-1]]],
+ ['斜行一步',[[1,1],[-1,1],[1,-1],[-1,-1]]],
+ ['橫移兩格',[[2,0],[-2,0]]],
+ ['向前跳躍',[[0,-2],[-1,-2],[1,-2]]],
+ ['前斜後退',[[1,-1],[-1,-1],[0,1]]]
+];
+function cardJanggi(){
+ let score=[0,0],starter=Math.random()<.5?0:1,turn,board,queues,plans,selected,setup;
+ const names=['青方','赤方'];
+ newRound();
+ function newRound(){
+  board=Array(25).fill('');
+  for(const [i,p] of [[2,'1王'],[1,'1兵'],[3,'1兵'],[7,'1兵'],[22,'0王'],[21,'0兵'],[23,'0兵'],[17,'0兵']])board[i]=p;
+  turn=starter;queues=[[],[]];plans=[[],[]];selected=-1;setup=0;plan(starter,true)
+ }
+ function pass(p,next){panel.replaceChildren();el(panel,'h2','請交機畀'+names[p]);button(panel,'準備好',next,'primary')}
+ function plan(p,initial){
+  plans[p]=[];
+  pass(p,draw);
+  function draw(){
+   panel.replaceChildren();el(panel,'h2',names[p]+' · 編排移動牌');
+   el(panel,'p','次序：'+plans[p].map(i=>chessCards[i][0]).join(' → '));
+   for(const [i,[name]] of chessCards.entries())button(panel,name,()=>{plans[p].push(i);draw()}).disabled=plans[p].includes(i);
+   button(panel,'重排',()=>{plans[p]=[];draw()});
+   button(panel,'封存次序',()=>{
+    queues[p]=plans[p].slice();
+    if(initial&&setup++===0){plan(1-p,true);return}
+    if(!initial)turn=1-p;
+    play()
+   },'primary').disabled=plans[p].length!==5;
+  }
+ }
+ function targets(i){
+  if(board[i][0]!==String(turn))return [];
+  const x=i%5,y=Math.floor(i/5),sign=turn?-1:1;
+  return chessCards[queues[turn][0]][1].map(([dx,dy])=>[x+dx*sign,y+dy*sign])
+   .filter(([c,r])=>c>=0&&c<5&&r>=0&&r<5&&board[r*5+c][0]!==String(turn)).map(([c,r])=>r*5+c)
+ }
+ function advance(){
+  queues[turn].shift();selected=-1;
+  if(!queues[turn].length){plan(turn,false);return}
+  turn=1-turn;play()
+ }
+ function play(){
+  panel.replaceChildren();el(panel,'h2',names[turn]+' 行棋 · '+score.join(' 比 '));
+  status(names.map((n,p)=>n+' 下張牌：'+chessCards[queues[p][0]][0]).join('　'));
+  const legal=selected<0?[]:targets(selected),grid=finalGrid(5,'五乘五棋盤');
+  board.forEach((p,i)=>{const node=button(grid,p.slice(1)||([2,22].includes(i)?'營':''),()=>{
+   if(legal.includes(i)){
+    const piece=board[selected],victim=board[i];board[i]=piece;board[selected]='';
+    if(victim.endsWith('王')||piece.endsWith('王')&&i===(turn===0?2:22)){win();return}advance()
+   }else{selected=i;play()}
+  },(p?'side'+p[0]:'')+(legal.includes(i)?' legal':''));node.disabled=!legal.includes(i)&&!targets(i).length;node.setAttribute('aria-label','棋格 '+(i+1)+(p?' '+names[+p[0]]+p.slice(1):''))});
+  if(!board.some((_,i)=>targets(i).length))button(panel,'無合法步 · 棄用呢張牌',advance,'primary')
+ }
+ function win(){
+  const winner=turn;score[winner]++;
+  panel.replaceChildren();el(panel,'h2',names[winner]+(score[winner]===2?' 贏出對局':' 贏出本局')+' · '+score.join(' 比 '));
+  button(panel,score[winner]===2?'再玩':'下一局',()=>{if(score[winner]===2)cardJanggi();else{starter=1-starter;newRound()}},'primary')
+ }
+}
+const linkPalette=['#ff847d','#83c8ff','#98e3ac','#ffe17b','#c69dff','#ffa9dc'];
+function nearby(a,b){return Math.abs(a%8-b%8)+Math.abs(Math.floor(a/8)-Math.floor(b/8))===1}
+function colorLink(){
+ const size=8,names=['甲方','乙方'];
+ let scores=[0,0],starter=Math.random()<.5?0:1,turn,board,placed,opening,color,phase,proof,drawColor,msg;
+ start();
+ function start(){
+  turn=starter;board=Array(64).fill(-1);placed=[];opening=true;color=0;phase='place';proof=[];drawColor=0;msg='';render()
+ }
+ function endpoints(c){return board.flatMap((v,i)=>v===c?[i]:[])}
+ function hasProof(){
+  return proof.every((path,c)=>{const ends=endpoints(c);return !ends.length||path.length>=5&&ends.every(i=>i===path[0]||i===path.at(-1))})
+ }
+ function settle(p){
+  scores[p]++;phase='end';msg=names[p]+' 贏出本局';render()
+ }
+ function confirm(){
+  const allFull=board.filter(c=>c>=0).length===12;
+  turn=1-turn;opening=false;placed=[];msg='';
+  if(allFull){phase='proof';proof=linkPalette.map(()=>[]);msg='棋粒已落齊，請上一手玩家證明所有路線。'}
+  render()
+ }
+ function render(){
+  panel.replaceChildren();el(panel,'h2',scores.join(' 比 ')+' · '+(phase==='proof'?names[1-turn]+' 證明路線':phase==='place'?names[turn]+' 落子':'本局完結'));
+  status(msg||(phase==='place'?'本手放 '+(opening?1:2)+' 粒，兩粒需用不同顏色。':'每條路線至少五格，橫直相連，路線不可交疊。'));
+  if(phase==='end'){button(panel,scores.some(n=>n>=3)?'再玩':'下一局',()=>{if(scores.some(n=>n>=3))colorLink();else{starter=1-starter;start()}},'primary');return}
+  const palette=el(panel,'div','','row actions');
+  linkPalette.forEach((t,c)=>{const b=button(palette,String.fromCharCode(65+c),()=>{if(phase==='proof')drawColor=c;else color=c;render()});b.style.color=t;b.setAttribute('aria-pressed',String(c===(phase==='proof'?drawColor:color)));if(phase==='proof')b.disabled=!endpoints(c).length});
+  const grid=finalGrid(size,'顏色連線棋盤');
+  board.forEach((v,i)=>{
+   const route=phase==='proof'?proof.findIndex(p=>p.includes(i)):-1;
+   const b=button(grid,v>=0?String.fromCharCode(65+v):route>=0?'•':'',()=>{
+    if(phase==='place'){
+     if(v>=0){const j=placed.indexOf(i);if(j>=0){placed.splice(j,1);board[i]=-1;render()}return}
+     if(placed.length===(opening?1:2)||endpoints(color).length===2||placed.some(j=>board[j]===color))return;
+     board[i]=color;placed.push(i);
+    }else{
+     const path=proof[drawColor];
+     if(path.at(-1)===i){path.pop();render();return}
+     if(route>=0||v>=0&&v!==drawColor||!path.length&&v!==drawColor||path.length&&!nearby(path.at(-1),i))return;
+     if(path.length>1&&board[path.at(-1)]===drawColor)return;
+     path.push(i)
+    }
+    render()
+   });
+   if(v>=0||route>=0){b.style.color=linkPalette[Math.max(v,route)];b.classList.add('legal')}
+   b.setAttribute('aria-label','第 '+(i+1)+' 格'+(v>=0?' '+String.fromCharCode(65+v):''));
+  });
+  if(phase==='place'){
+   button(panel,'確認落子',confirm,'primary').disabled=placed.length!==(opening?1:2)&&!(placed.length===1&&board.filter(v=>v>=0).length===12);
+   if(!opening)button(panel,'質疑無法連線',()=>{phase='proof';proof=linkPalette.map(()=>[]);drawColor=board.find(v=>v>=0);msg='請上一手玩家逐色畫線，未配對嘅棋可用路線末端補上。';render()}).disabled=!!placed.length;
+  }else{
+   button(panel,'清除所選路線',()=>{proof[drawColor]=[];render()});
+   button(panel,'提交證明',()=>{if(hasProof())settle(1-turn)},'primary').disabled=!hasProof();
+   button(panel,'放棄證明',()=>settle(turn))
+  }
+ }
+}
+function eqFeedback(guess,secret){
+ const marks=Array(guess.length).fill(0),stock=new Map();
+ for(let i=0;i<secret.length;i++){if(guess[i]===secret[i])marks[i]=2;else stock.set(secret[i],(stock.get(secret[i])||0)+1)}
+ for(let i=0;i<guess.length;i++)if(!marks[i]&&stock.get(guess[i])){marks[i]=1;stock.set(guess[i],stock.get(guess[i])-1)}
+ return marks
+}
+function eqValid(formula){
+ if(!/^[0-9+*/^=\-]{9}$/.test(formula))return false;
+ const sides=formula.split('=');if(sides.length!==2)return false;
+ function value(side){
+  if(!/^(0|[1-9]\d*)([+*/^\-](0|[1-9]\d*))*$/.test(side))return NaN;
+  const tokens=side.match(/\d+|[^\d]/g);
+  for(const ops of [['^'],['*','/'],['+','-']]){
+   let i=1;
+   while(i<tokens.length){
+    const op=tokens[i];
+    if(!ops.includes(op)){i+=2;continue}
+    if(op==='^'&&tokens[i+2]==='^'){i+=2;continue}
+    const a=Number(tokens[i-1]),b=Number(tokens[i+1]);
+    const n=op==='^'?a**b:op==='*'?a*b:op==='/'?a/b:op==='+'?a+b:a-b;
+    tokens.splice(i-1,3,n);i=Math.max(1,i-2);
+   }
+  }
+  return Number(tokens[0])
+ }
+ const [a,b]=sides.map(value);
+ return Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a-b)<=1e-10
+}
+function equationLights(){
+ let secrets=[],guesses=[],records=[[],[]],round=1,p=0;
+ const names=['甲方','乙方'];
+ handover();
+ function handover(){
+  panel.replaceChildren();el(panel,'h2','請交機畀'+names[p]);button(panel,'準備好',input,'primary')
+ }
+ function show(parent,entry){
+  const row=el(parent,'div','','equation-row');
+  [...entry.text].forEach((c,i)=>{const tile=el(row,'span',c,'eq-'+entry.marks[i]);tile.setAttribute('aria-label',c+' '+['紅','黃','綠'][entry.marks[i]])})
+ }
+ function input(){
+  const setup=secrets.length<2;
+  panel.replaceChildren();el(panel,'h2',names[p]+' · '+(setup?'設定秘密算式':'第 '+round+' 輪猜算式'));
+  if(!setup)records[p].forEach(entry=>show(panel,entry));
+  const form=el(panel,'form'),field=el(form,'input');field.maxLength=9;field.autocomplete='off';field.spellcheck=false;field.setAttribute('aria-label','九格算式');field.placeholder=setup?'例 12+3=30/2':'輸入 9 個字元';
+  const keys=el(form,'div','','row actions');
+  for(const c of '0123456789+-*/^=')button(keys,c,()=>{if(field.value.length<9)field.value+=c});
+  button(keys,'刪除',()=>{field.value=field.value.slice(0,-1)});
+  const feedback=el(form,'p','','status'),submit=el(form,'button','鎖定','primary');submit.type='submit';
+  form.onsubmit=e=>{
+   e.preventDefault();const text=field.value.trim().replaceAll('×','*').replaceAll('÷','/');
+   if(setup?!eqValid(text):!/^[0-9+*/^=\-]{9}$/.test(text)){feedback.textContent=setup?'請輸入有效等式，剛好 9 格。':'請填滿 9 格，只用數字同指定符號。';return}
+   if(setup)secrets.push(text);else guesses.push(text);
+   if(!setup&&p===1){reveal();return}
+   p=1-p;handover()
+  }
+ }
+ function reveal(){
+  panel.replaceChildren();el(panel,'h2','第 '+round+' 輪 · 同步揭曉');
+  const hits=guesses.map((text,i)=>{const marks=eqFeedback(text,secrets[1-i]);const entry={text,marks};records[i].push(entry);el(panel,'p',names[i]);show(panel,entry);return marks.filter(n=>n===2).length});
+  if(hits.includes(9)||round===8){
+   const totals=hits.includes(9)?hits:records.map(r=>Math.max(...r.map(e=>e.marks.filter(n=>n===2).length)));
+   status(totals[0]===totals[1]?'平手，重新出題。':names[totals[0]>totals[1]?0:1]+' 勝出！');
+   el(panel,'p','秘密算式：'+secrets.join(' ／ '));button(panel,'再玩',equationLights,'primary');return
+  }
+  button(panel,'下一輪',()=>{round++;guesses=[];p=0;handover()},'primary')
+ }
 }
 
 selectGame(document.documentElement.dataset.game||new URLSearchParams(location.search).get('game'));
